@@ -4,7 +4,6 @@ import bge
 import mathutils
 import particles
 import random
-import pathfinder
 
 
 class VehicleTrails(object):
