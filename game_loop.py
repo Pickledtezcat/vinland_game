@@ -4,7 +4,7 @@ import bgeutils
 import random
 import math
 
-from mathutils import Vector, Matrix, Euler
+import mathutils
 
 import game_states
 import particles
@@ -35,11 +35,11 @@ class MovementAction(object):
 
         elif self.manager.tile_over:
 
-            self.movement_point = Vector(self.manager.tile_over)
+            self.movement_point = mathutils.Vector(self.manager.tile_over)
 
             selected_agents = [agent for agent in self.manager.agents if agent.selected]
 
-            center_point = Vector().to_2d()
+            center_point = mathutils.Vector().to_2d()
 
             for selected_agent in selected_agents:
                 center_point += selected_agent.box.worldPosition.copy().to_2d()
@@ -73,7 +73,7 @@ class MovementAction(object):
 
             for marker in self.movement_markers:
 
-                rotation = Euler((0.0, 0.0, angle))
+                rotation = mathutils.Euler((0.0, 0.0, angle))
                 new_position = marker.offset.copy().to_3d()
                 new_position.rotate(rotation)
                 target_point = self.movement_point.copy() - new_position.to_2d()
@@ -133,8 +133,10 @@ class GameLoop(object):
         self.debug_message = ""
         self.paused = False
 
+        self.level_size = 64
         self.terrain = None
         self.level = {}
+        self.heights = {}
 
         self.dynamic_lights = [ob for ob in self.scene.objects if ob.get("dynamic_light")]
         self.lights = []
@@ -167,7 +169,22 @@ class GameLoop(object):
         self.terrain = terrain_generation.TerrainGeneration(self, ground_object)
         self.LOS_manager = LOS.VisionPaint(self)
 
+    def get_heights(self):
+
+        for x in range(-2, (self.level_size * 4) + 2):
+            for y in range(-2, (self.level_size * 4) +2):
+                point = mathutils.Vector([x, y, 0.0])
+                ray = bgeutils.ground_ray(self.own, survey_point=point)
+                if ray:
+                    self.heights[(x, y)] = bgeutils.RayHit(*ray)
+                else:
+                    self.heights[(x, y)] = bgeutils.RayHit(None, point, mathutils.Vector([0.0, 0.0, 1.0]))
+
+
     def start_up(self):
+
+        # temporary, later get heights from level generation (maybe)
+        self.get_heights()
 
         self.LOS_manager.do_paint()
         self.waypoints = bgeutils.Waypoints(self)

@@ -87,6 +87,7 @@ def interpolate_float(current, target, factor):
 
 
 def ground_ray(game_object, survey_point=None):
+
     if survey_point:
         position = survey_point
     else:

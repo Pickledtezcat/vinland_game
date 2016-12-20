@@ -1,4 +1,3 @@
-
 import bgeutils
 import bge
 import mathutils
@@ -42,7 +41,6 @@ class VehicleTrails(object):
 
 
 class AgentAnimation(object):
-
     def __init__(self, agent, vehicle):
 
         self.agent = agent
@@ -73,26 +71,20 @@ class AgentAnimation(object):
             self.agent.off_road = False
 
         location = self.agent.location
-        start = mathutils.Vector([location[0] + self.agent.tile_offset, location[1] + self.agent.tile_offset, 0.0])
-
         target = self.agent.target_tile
+
+        start = mathutils.Vector([location[0] + self.agent.tile_offset, location[1] + self.agent.tile_offset, 0.0])
+        start_key = bgeutils.get_key(start)
+
         if target:
             end = mathutils.Vector([target[0] + self.agent.tile_offset, target[1] + self.agent.tile_offset, 0.0])
         else:
             end = start.copy()
 
-        start_hit = bgeutils.ground_ray(box, survey_point=start)
-        end_hit = bgeutils.ground_ray(box, survey_point=end)
+        end_key = bgeutils.get_key(end)
 
-        if start_hit:
-            self.start_hit = bgeutils.RayHit(*start_hit)
-        else:
-            self.start_hit = bgeutils.RayHit(None, start, mathutils.Vector([0.0, 0.0, 1.0]))
-
-        if end_hit:
-            self.end_hit = bgeutils.RayHit(*end_hit)
-        else:
-            self.end_hit = bgeutils.RayHit(None, end, mathutils.Vector([0.0, 0.0, 1.0]))
+        self.start_hit = self.agent.manager.heights[start_key]
+        self.end_hit = self.agent.manager.heights[end_key]
 
         if self.vehicle:
             if self.agent.on_screen and target:
@@ -206,7 +198,6 @@ class AgentTargeter(object):
 
 
 class AgentEnemyTargeter(AgentTargeter):
-
     def set_up(self):
 
         start_vector = self.agent.agent_hook.getAxisVect([0.0, 1.0, 0.0])
@@ -293,7 +284,6 @@ class AgentPause(object):
 
 
 class ManAction(object):
-
     def __init__(self, man):
 
         self.man = man
@@ -386,9 +376,10 @@ class ManAction(object):
     def start_up(self):
 
         start = mathutils.Vector(self.location).to_3d()
-        start_hit = bgeutils.ground_ray(self.man.box, survey_point=start)
+        start_hit = self.agent.manager.heights.get(bgeutils.get_key(start))
+
         if start_hit:
-            self.start = start_hit[1]
+            self.start = start_hit.point
         else:
             self.start = start
 
@@ -461,12 +452,12 @@ class ManAction(object):
         start = mathutils.Vector(self.location).to_3d()
         end = mathutils.Vector(self.target).to_3d()
 
-        start_hit = bgeutils.ground_ray(self.man.box, survey_point=start)
-        end_hit = bgeutils.ground_ray(self.man.box, survey_point=end)
+        start_hit = self.agent.manager.heights[bgeutils.get_key(start)]
+        end_hit = self.agent.manager.heights[bgeutils.get_key(end)]
 
         if start_hit and end_hit:
-            self.start = start_hit[1]
-            self.end = end_hit[1]
+            self.start = start_hit.point
+            self.end = end_hit.point
         else:
             self.start = start
             self.end = end
@@ -535,7 +526,6 @@ class ManAction(object):
 
 
 class AgentPathfinding(object):
-
     def __init__(self, agent, destination):
 
         self.agent = agent
@@ -644,7 +634,8 @@ class CombatControl(object):
     def get_targets(self):
         if not self.agent.enemy_target:
 
-            target_list = [agent for agent in self.manager.agents if agent.team >= 0 and agent.team != self.agent.team and agent.visible]
+            target_list = [agent for agent in self.manager.agents if
+                           agent.team >= 0 and agent.team != self.agent.team and agent.visible]
 
             closest = 90000.0
             best = None
@@ -721,10 +712,8 @@ class VehicleCombatControl(CombatControl):
 
 
 class InfantryCombatControl(CombatControl):
-
     def __init__(self, agent):
         super().__init__(agent)
 
     def process(self):
         pass
-
