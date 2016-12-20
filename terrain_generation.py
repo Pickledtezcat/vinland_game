@@ -48,7 +48,7 @@ class TerrainGeneration(object):
         self.canvas = self.create_canvas()
         self.field = self.generate_field()
 
-        self.canvas.refresh(False)
+        self.canvas.refresh(True)
 
     def create_canvas(self):
         canvas_size = self.canvas_size
