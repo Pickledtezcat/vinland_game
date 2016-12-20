@@ -171,6 +171,7 @@ class GameLoop(object):
 
     def get_heights(self):
 
+
         for x in range(-2, (self.level_size * 4) + 2):
             for y in range(-2, (self.level_size * 4) +2):
                 point = mathutils.Vector([x, y, 0.0])
