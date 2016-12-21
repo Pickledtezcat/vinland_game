@@ -83,8 +83,8 @@ class AgentAnimation(object):
 
         end_key = bgeutils.get_key(end)
 
-        self.start_hit = self.agent.manager.heights[start_key]
-        self.end_hit = self.agent.manager.heights[end_key]
+        self.start_hit = self.agent.manager.tiles[start_key]
+        self.end_hit = self.agent.manager.tiles[end_key]
 
         if self.vehicle:
             if self.agent.on_screen and target:
@@ -290,7 +290,7 @@ class ManAction(object):
         self.agent = man.agent
         self.location = self.agent.location
         self.history = []
-        self.occupied = []
+        self.occupied = None
         self.target = None
         self.destination = None
         self.start = None
@@ -376,7 +376,7 @@ class ManAction(object):
     def start_up(self):
 
         start = mathutils.Vector(self.location).to_3d()
-        start_hit = self.agent.manager.heights.get(bgeutils.get_key(start))
+        start_hit = self.agent.manager.tiles.get(bgeutils.get_key(start))
 
         if start_hit:
             self.start = start_hit.point
@@ -452,8 +452,8 @@ class ManAction(object):
         start = mathutils.Vector(self.location).to_3d()
         end = mathutils.Vector(self.target).to_3d()
 
-        start_hit = self.agent.manager.heights[bgeutils.get_key(start)]
-        end_hit = self.agent.manager.heights[bgeutils.get_key(end)]
+        start_hit = self.agent.manager.tiles[bgeutils.get_key(start)]
+        end_hit = self.agent.manager.tiles[bgeutils.get_key(end)]
 
         if start_hit and end_hit:
             self.start = start_hit.point
@@ -486,7 +486,7 @@ class ManAction(object):
 
     def check_occupied(self, target_tile):
 
-        check_tile = self.agent.manager.level.get(target_tile)
+        check_tile = self.agent.manager.tiles[target_tile].occupied
 
         if check_tile:
             return True
@@ -503,7 +503,7 @@ class ManAction(object):
         for x in range(radius):
             for y in range(radius):
                 check_key = (ox + (x - half), oy + (y - half))
-                check_tile = self.agent.manager.level.get(check_key)
+                check_tile = self.agent.manager.tiles[check_key].occupied
 
                 if check_tile:
                     if check_tile != self.agent and check_tile.agent_type == "VEHICLE":
@@ -514,15 +514,15 @@ class ManAction(object):
 
     def set_occupied(self, set_tile):
 
-        self.agent.manager.level[set_tile] = self.agent
-        self.occupied.append(set_tile)
+        self.agent.manager.tiles[set_tile].occupied = self.agent
+        self.occupied = set_tile
 
     def clear_occupied(self):
 
-        for tile in self.occupied:
-            self.agent.manager.level.pop(tile, None)
+        if self.occupied:
+            self.agent.manager.tiles[self.occupied].occupied = None
 
-        self.occupied = []
+        self.occupied = None
 
 
 class AgentPathfinding(object):

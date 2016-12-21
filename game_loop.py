@@ -36,7 +36,6 @@ class MovementAction(object):
         elif self.manager.tile_over:
 
             self.movement_point = mathutils.Vector(self.manager.tile_over)
-
             selected_agents = [agent for agent in self.manager.agents if agent.selected]
 
             center_point = mathutils.Vector().to_2d()
@@ -61,15 +60,13 @@ class MovementAction(object):
             self.rotation_countdown -= 1
         else:
             vector_start = self.movement_point
-            ground_hit = self.manager.mouse_hit_ray("ground")
-            angle = 0.0
+            ground_hit = self.manager.tiles[bgeutils.get_key(self.manager.tile_over)]
 
-            if ground_hit[0]:
-                vector_end = ground_hit[1].to_2d()
+            vector_end = ground_hit.point.to_2d()
 
-                movement_vector = vector_end - vector_start
-                local_vector = vector_end - self.center_point
-                angle = movement_vector.angle_signed(local_vector, 0.0)
+            movement_vector = vector_end - vector_start
+            local_vector = vector_end - self.center_point
+            angle = movement_vector.angle_signed(local_vector, 0.0)
 
             for marker in self.movement_markers:
 
@@ -136,7 +133,7 @@ class GameLoop(object):
         self.level_size = 64
         self.terrain = None
         self.level = {}
-        self.heights = {}
+        self.tiles = {}
 
         self.dynamic_lights = [ob for ob in self.scene.objects if ob.get("dynamic_light")]
         self.lights = []
@@ -169,22 +166,24 @@ class GameLoop(object):
         self.terrain = terrain_generation.TerrainGeneration(self, ground_object)
         self.LOS_manager = LOS.VisionPaint(self)
 
-    def get_heights(self):
+    def get_tiles(self):
 
         for x in range(-2, (self.level_size * 4) + 2):
             for y in range(-2, (self.level_size * 4) +2):
                 point = mathutils.Vector([x, y, 0.0])
                 ray = bgeutils.ground_ray(self.own, survey_point=point)
                 if ray:
-                    self.heights[(x, y)] = bgeutils.RayHit(*ray)
+                    self.tiles[(x, y)] = bgeutils.TerrainTile(*ray)
                 else:
-                    self.heights[(x, y)] = bgeutils.RayHit(None, point, mathutils.Vector([0.0, 0.0, 1.0]))
-
+                    tile = bgeutils.TerrainTile(None, point, mathutils.Vector([0.0, 0.0, 1.0]))
+                    terrain = self.terrain.field.get(bgeutils.get_terrain_position((x, y)))
+                    tile.off_road = terrain
+                    self.tiles[(x, y)] = tile
 
     def start_up(self):
 
         # temporary, later get heights from level generation (maybe)
-        self.get_heights()
+        self.get_tiles()
 
         self.LOS_manager.do_paint()
         self.waypoints = bgeutils.Waypoints(self)
@@ -371,7 +370,7 @@ class GameLoop(object):
         for x in range(radius):
             for y in range(radius):
                 check_key = (ox + (x-half), oy + (y-half))
-                contents = self.level.get(check_key)
+                contents = self.tiles[check_key].occupied
 
                 if contents:
                     if contents.team != 0:

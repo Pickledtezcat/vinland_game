@@ -6,6 +6,14 @@ from mathutils import Vector, Matrix, geometry
 import math
 
 
+class TerrainTile(object):
+    def __init__(self, hit_object, point, normal):
+        self.hit_object = hit_object
+        self.point = point
+        self.normal = normal
+        self.occupied = False
+        self.off_road = False
+
 class RayHit(object):
     def __init__(self, hit_object, point, normal):
         self.hit_object = hit_object

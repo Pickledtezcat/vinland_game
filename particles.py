@@ -104,15 +104,19 @@ class MovementPointIcon(Particle):
 
     def set_position(self, position):
 
-        ground_hit_position = bgeutils.ground_ray(self.manager.own, survey_point=position.to_3d())
-        if ground_hit_position:
-            position = ground_hit_position[1]
-            normal = ground_hit_position[2]
-            self.invalid_location = False
-        else:
-            self.invalid_location = True
+        self.invalid_location = False
+
+        for axis in position:
+            if axis < 0.0 or axis > self.manager.level_size * 4:
+                self.invalid_location = True
+
+        if self.invalid_location:
             position = position.to_3d()
             normal = mathutils.Vector([0.0, 0.0, 1.0])
+        else:
+            ground_hit_position = self.manager.tiles[bgeutils.get_key(position)]
+            position = ground_hit_position.point
+            normal = ground_hit_position.normal
 
         self.object_box.worldPosition = position
         self.object_box.worldPosition.z += 0.5

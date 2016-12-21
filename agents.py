@@ -60,7 +60,7 @@ class TestHouse(object):
                     marker = self.box.scene.addObject("marker", self.box, 0)
                     marker.worldPosition = (x + xp, y + yp, self.box.worldPosition.copy().z + 5.0)
 
-                self.manager.level[set_key] = self
+                self.manager.tiles[set_key].occupied = self
                 self.occupied.append([set_key, marker])
 
     def update(self):
@@ -193,13 +193,13 @@ class Agent(object):
                     marker = self.box.scene.addObject("marker", self.box, 0)
                     marker.worldPosition = (x + xp, y + yp, self.hull.worldPosition.copy().z + 2.0)
 
-                self.manager.level[set_key] = self
+                self.manager.tiles[set_key].occupied = self
                 self.occupied.append([set_key, marker])
 
     def clear_occupied(self):
 
         for occupied in self.occupied:
-            self.manager.level.pop(occupied[0], None)
+            self.manager.tiles[occupied[0]].occupied = None
             if occupied[1]:
                 occupied[1].endObject()
 
@@ -213,7 +213,7 @@ class Agent(object):
         for xp in range(self.size):
             for yp in range(self.size):
                 check_key = (x + xp, y + yp)
-                check_tile = self.manager.level.get(check_key)
+                check_tile = self.manager.tiles[check_key].occupied
 
                 if check_tile:
                     if check_tile != self:
@@ -541,7 +541,7 @@ class InfantrySquad(Agent):
         for xp in range(self.size):
             for yp in range(self.size):
                 check_key = (x + xp, y + yp)
-                check_tile = self.manager.level.get(check_key)
+                check_tile = self.manager.tiles[check_key].occupied
 
                 if check_tile:
                     if check_tile != self:
