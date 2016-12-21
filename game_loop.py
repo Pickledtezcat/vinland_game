@@ -132,7 +132,6 @@ class GameLoop(object):
 
         self.level_size = 64
         self.terrain = None
-        self.level = {}
         self.tiles = {}
 
         self.dynamic_lights = [ob for ob in self.scene.objects if ob.get("dynamic_light")]
@@ -168,17 +167,18 @@ class GameLoop(object):
 
     def get_tiles(self):
 
-        for x in range(-2, (self.level_size * 4) + 2):
-            for y in range(-2, (self.level_size * 4) +2):
+        for x in range(-2, (self.level_size * 8) + 2):
+            for y in range(-2, (self.level_size * 8) +2):
                 point = mathutils.Vector([x, y, 0.0])
                 ray = bgeutils.ground_ray(self.own, survey_point=point)
                 if ray:
-                    self.tiles[(x, y)] = bgeutils.TerrainTile(*ray)
+                    tile = bgeutils.TerrainTile(*ray)
+                    terrain = self.terrain.field.get(bgeutils.get_terrain_position((x, y)), 2)
+                    tile.off_road = not bool(terrain)
                 else:
                     tile = bgeutils.TerrainTile(None, point, mathutils.Vector([0.0, 0.0, 1.0]))
-                    terrain = self.terrain.field.get(bgeutils.get_terrain_position((x, y)))
-                    tile.off_road = terrain
-                    self.tiles[(x, y)] = tile
+
+                self.tiles[(x, y)] = tile
 
     def start_up(self):
 

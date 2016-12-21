@@ -107,6 +107,7 @@ class Agent(object):
         self.team = team
 
         self.occupied = []
+        self.shell = [(0, 0)]
 
         self.state_name = None
         self.state = None
@@ -183,23 +184,22 @@ class Agent(object):
 
         x, y = self.location
 
-        for xp in range(self.size):
-            for yp in range(self.size):
+        for tile in self.shell:
+            xp, yp = tile
+            set_key = (x + xp, y + yp)
+            marker = None
 
-                set_key = (x + xp, y + yp)
-                marker = None
+            if self.manager.debug:
+                marker = self.box.scene.addObject("marker", self.box, 0)
+                marker.worldPosition = (x + xp, y + yp, 2.0)
 
-                if self.manager.debug:
-                    marker = self.box.scene.addObject("marker", self.box, 0)
-                    marker.worldPosition = (x + xp, y + yp, self.hull.worldPosition.copy().z + 2.0)
-
-                self.manager.tiles[set_key].occupied = self
-                self.occupied.append([set_key, marker])
+            self.manager.tiles[set_key].occupied = self
+            self.occupied.append([set_key, marker])
 
     def clear_occupied(self):
 
         for occupied in self.occupied:
-            self.manager.tiles[occupied[0]].occupied = None
+            self.manager.tiles[occupied[0]].occupied = False
             if occupied[1]:
                 occupied[1].endObject()
 
@@ -210,8 +210,8 @@ class Agent(object):
         x, y = location
         occupied = []
 
-        for xp in range(self.size):
-            for yp in range(self.size):
+        for xp in range(self.size + 1):
+            for yp in range(self.size + 1):
                 check_key = (x + xp, y + yp)
                 check_tile = self.manager.tiles[check_key].occupied
 
@@ -400,6 +400,21 @@ class VehicleAgent(Agent):
         self.stats = self.display_object.stats
         self.size = 3 + self.stats['chassis size']
         self.tile_offset = (self.size * 0.5) - 0.5
+
+        self.set_shell()
+
+    def set_shell(self):
+
+        self.shell = []
+
+        for x in range(self.size + 1):
+            for y in range(self.size + 1):
+
+                x_edge = x == 0 or x == self.size
+                y_edge = y == 0 or y == self.size
+
+                if x_edge or y_edge:
+                    self.shell.append((x, y))
 
     def set_dynamic_stats(self):
 

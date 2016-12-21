@@ -62,10 +62,7 @@ class AgentAnimation(object):
 
     def survey_points(self):
 
-        box = self.agent.box
-        terrain_square = bgeutils.get_terrain_position(box.worldPosition.copy())
-        terrain_tile = self.agent.manager.terrain.field[terrain_square]
-        if terrain_tile == 0:
+        if self.agent.manager.tiles[self.agent.location].off_road:
             self.agent.off_road = True
         else:
             self.agent.off_road = False
@@ -371,7 +368,7 @@ class ManAction(object):
             self.frame_update()
 
         else:
-            self.sub_frame += self.speed * 0.5
+            self.sub_frame += (self.speed * 0.65)
 
     def start_up(self):
 
@@ -596,6 +593,7 @@ class AgentPathfinding(object):
 
                 elif next_target:
                     if touching_infantry:
+                        self.agent.target_tile = None
                         self.agent.set_waiting()
 
                     else:
