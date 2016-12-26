@@ -116,7 +116,7 @@ class MovementMarker(object):
 
 class GameLoop(object):
     def __init__(self, cont):
-        self.debug = True
+        self.debug = False
         self.console = False
         self.cont = cont
         self.own = cont.owner
@@ -124,11 +124,14 @@ class GameLoop(object):
         self.input = game_input.GameInput()
         self.camera = camera_control.CameraControl(self)
         self.context = "PAN"
+        self.mouse_timer = 6
+        self.mouse_refresh = 6
 
         self.select_point = None
         self.movement_action = None
         self.debug_message = ""
         self.paused = False
+        self.selected_agents = []
 
         self.level_size = 64
         self.terrain = None
@@ -276,12 +279,21 @@ class GameLoop(object):
 
     def agent_control(self):
 
+        self.selected_agents = [agent for agent in self.agents if agent.selected]
+
+        if len(self.selected_agents) > 0:
+            self.mouse_refresh = 16
+        else:
+            self.mouse_refresh = 6
+
         if "right_drag" in self.input.buttons:
+            self.mouse_refresh = 3
             self.set_movement_points(True)
         else:
             self.set_movement_points(False)
 
         if "left_drag" in self.input.buttons:
+            self.mouse_refresh = 3
             self.select_units(True)
         else:
             self.select_units(False)
@@ -387,34 +399,39 @@ class GameLoop(object):
 
     def get_cursor_location(self):
 
-        ground_hit = self.mouse_hit_ray("ground")
-        if ground_hit[0]:
-            self.tile_over = bgeutils.get_key(ground_hit[1])
+        if self.mouse_timer > self.mouse_refresh:
+            self.mouse_timer = 0
 
-        contents = self.get_contents()
+            ground_hit = self.mouse_hit_ray("ground")
+            if ground_hit[0]:
+                self.tile_over = bgeutils.get_key(ground_hit[1])
 
-        if contents:
-            self.mouse_over_unit = contents
-        else:
-            self.mouse_over_unit = None
+            contents = self.get_contents()
 
-        context = "PAN"
+            if contents:
+                self.mouse_over_unit = contents
+            else:
+                self.mouse_over_unit = None
 
-        if self.mouse_over_unit:
-            if self.mouse_over_unit.team > 0:
-                if self.mouse_over_unit.visible:
-                    selected_agents = [agent for agent in self.agents if agent.selected]
-                    if selected_agents:
-                        context = "TARGET"
+            context = "PAN"
+
+            if self.mouse_over_unit:
+                if self.mouse_over_unit.team > 0:
+                    if self.mouse_over_unit.visible:
+                        if self.selected_agents:
+                            context = "TARGET"
+                        else:
+                            context = "NO_TARGET"
+                else:
+                    if self.mouse_over_unit.team == 0:
+                        context = "SELECT"
                     else:
                         context = "NO_TARGET"
-            else:
-                if self.mouse_over_unit.team == 0:
-                    context = "SELECT"
-                else:
-                    context = "NO_TARGET"
 
-        self.context = context
+            self.context = context
+
+        else:
+            self.mouse_timer += 1
 
     def number_select(self):
 
