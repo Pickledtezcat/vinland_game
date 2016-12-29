@@ -9,6 +9,75 @@ import game_states
 import bgeutils
 
 
+class UIBars(object):
+
+    def __init__(self, manager):
+        self.manager = manager
+        self.on_screen_agents = []
+        self.bars = []
+
+    def refresh_bars(self):
+        on_screen_agents = [agent for agent in self.manager.main_loop.agents if agent.agent_type != "BUILDING" and agent.screen_position]
+        if on_screen_agents != self.on_screen_agents:
+            for bar in self.bars:
+                bar.end_bar()
+
+            self.bars = []
+            self.on_screen_agents = on_screen_agents
+
+            for agent in self.on_screen_agents:
+                self.bars.append(UIBar(self.manager.own, agent, self.manager.main_camera))
+
+    def update(self):
+        self.refresh_bars()
+
+        for bar in self.bars:
+            bar.update()
+
+class UIBar(object):
+
+    def __init__(self, adder, agent, camera):
+        self.adder = adder
+        self.agent = agent
+        self.camera = camera
+        self.bar = adder.scene.addObject("agent_UI", adder, 0)
+        self.health_bar = bgeutils.get_ob("health_bar", self.bar.childrenRecursive)
+        self.shock_bar = bgeutils.get_ob("shock_bar", self.bar.childrenRecursive)
+        self.rank_icon = bgeutils.get_ob("rank_icon", self.bar.childrenRecursive)
+        self.group_number = bgeutils.get_ob("group_number", self.bar.childrenRecursive)
+        self.group_icon = bgeutils.get_ob("group_icon", self.bar.childrenRecursive)
+
+        if agent.team != 0:
+            self.rank_icon.endObject()
+            self.group_icon.endObject()
+
+        self.health_bar.color = [0.0, 1.0, 0.0, 1.0]
+        self.shock_bar.color = [1.0, 0.0, 0.0, 1.0]
+        self.shock_bar.localScale.x = 0.5
+
+    def end_bar(self):
+        self.bar.endObject()
+
+    def set_visible(self, visible):
+        self.bar.visible = visible
+
+        for bar_part in self.bar.childrenRecursive:
+            bar_part.visible = visible
+
+    def update(self):
+
+        if self.agent.team == 0 and not self.agent.selected:
+            self.set_visible(False)
+        else:
+            self.set_visible(True)
+
+        screen_position = self.agent.screen_position
+        screen_vector = self.camera.getScreenVect(*screen_position)
+        screen_vector.length = 22.0
+        target_point = self.camera.worldPosition.copy() - screen_vector
+        target_point.y += 1.0
+        self.bar.worldPosition = target_point
+
 class UILoop(object):
     def __init__(self, cont, main_loop):
 
@@ -23,6 +92,7 @@ class UILoop(object):
         self.cursor_mesh = self.cursor.children[0]
         self.cursor_default = mathutils.Vector([-1.0, 1.0, 0.0])
         self.selection_box = None
+        self.ui_bars = UIBars(self)
 
         self.state_name = None
         self.state = game_states.UISetUp(self)
@@ -71,6 +141,8 @@ class UILoop(object):
             self.selection_box.localScale.y = y_length
 
     def game_cursor_update(self):
+
+        self.ui_bars.update()
 
         if self.main_loop.context == "PAN":
             self.set_cursor("pan_cursor")

@@ -288,7 +288,7 @@ class InfantryState(AgentState):
 
         #self.debug_message = self.agent.load_name
 
-        if self.agent.team == 0:
+        if self.agent.team == 0 and self.agent.manager.debug:
             if self.agent.selected:
                 self.agent.flag.visible = True
             else:

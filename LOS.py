@@ -13,8 +13,7 @@ class VisionPaint(object):
         self.canvas_size = 64
         self.brush_size = 32
 
-        self.inner_brush = self.create_brush(6, [0, 0, 255], smooth=True)
-        self.outer_brush = self.create_brush(15, [0, 0, 127], smooth=True)
+        self.vision_brush = self.create_brush(6, [0, 0, 255], outer=15, smooth=True)
 
         self.player_pixel = self.create_brush(1, [0, 255, 0])
         self.enemy_pixel = self.create_brush(1, [255, 0, 0])
@@ -37,7 +36,7 @@ class VisionPaint(object):
 
         return tex
 
-    def create_brush(self, radius, RGB, smooth=False):
+    def create_brush(self, radius, RGB, outer=0, smooth=False):
 
         brush_size = self.brush_size
         brush = bytearray(brush_size * brush_size * 4)
@@ -55,7 +54,10 @@ class VisionPaint(object):
                 if length == radius and smooth:
                     pixel = half_rgb
                 elif length > radius:
-                    pixel = [0, 0, 0]
+                    if outer > 0 and length < outer:
+                        pixel = half_rgb
+                    else:
+                        pixel = [0, 0, 0]
                 else:
                     pixel = rgb
 
@@ -75,9 +77,7 @@ class VisionPaint(object):
             x, y = bgeutils.get_terrain_position(agent.location)
             bx = x - int(self.brush_size * 0.5)
             by = y - int(self.brush_size * 0.5)
-            self.canvas.source.plot(self.outer_brush, self.brush_size, self.brush_size, bx, by,
-                                    bge.texture.IMB_BLEND_LIGHTEN)
-            self.canvas.source.plot(self.inner_brush, self.brush_size, self.brush_size, bx, by,
+            self.canvas.source.plot(self.vision_brush, self.brush_size, self.brush_size, bx, by,
                                     bge.texture.IMB_BLEND_LIGHTEN)
             self.canvas.source.plot(self.player_pixel, self.brush_size, self.brush_size, bx, by,
                                     bge.texture.IMB_BLEND_LIGHTEN)

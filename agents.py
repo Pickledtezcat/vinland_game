@@ -81,6 +81,7 @@ class Agent(object):
     selected = False
     selection_group = None
     on_screen = False
+    screen_position = None
     stats = None
     visible = True
     toggle_visible = False

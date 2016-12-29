@@ -119,6 +119,8 @@ class AgentAnimation(object):
         self.agent.hull.worldPosition = self.agent.hull.worldPosition.copy().lerp(point, 0.8)
 
         if self.agent.on_screen:
+            self.agent.screen_position = self.agent.box.scene.active_camera.getScreenPosition(self.agent.box)
+
             if self.vehicle:
                 local_y = self.agent.hull.getAxisVect([0.0, 1.0, 0.0])
 
@@ -147,6 +149,9 @@ class AgentAnimation(object):
                 target_vector = local_z.lerp(normal, self.damping)
                 self.agent.hull.alignAxisToVect(local_y, 1, 1.0)
                 self.agent.hull.alignAxisToVect(target_vector, 2, 1.0)
+
+        else:
+            self.agent.screen_position = None
 
 
 class AgentTargeter(object):
