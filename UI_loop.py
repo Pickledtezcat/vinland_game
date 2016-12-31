@@ -54,8 +54,10 @@ class UIBar(object):
                 if ob != self.health_bar and ob != self.shock_bar:
                     ob.endObject()
 
-        #self.health_bar.color = [0.0, 1.0, 0.0, 1.0]
-        #self.shock_bar.color = [1.0, 0.0, 0.0, 1.0]
+        # TODO set up UI bars to feature mode icons, and other things
+
+        # self.health_bar.color = [0.0, 1.0, 0.0, 1.0]
+        # self.shock_bar.color = [1.0, 0.0, 0.0, 1.0]
         self.shock_bar.localScale.x = 0.5
 
     def end_bar(self):
