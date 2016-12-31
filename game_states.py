@@ -78,6 +78,7 @@ class RunningState(ActiveState):
     def update(self):
         super().update()
 
+        self.manager.profile("process_UI_orders")
         self.manager.profile("get_cursor_location")
         self.manager.profile("agent_control")
         self.manager.profile("agent_commands")

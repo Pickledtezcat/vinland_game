@@ -62,6 +62,15 @@ class AgentCommand(object):
         self.additive = additive
 
 
+class UI_command(object):
+    def __init__(self, name, condition=None, position=None, target=None, additive=False):
+        self.name = name
+        self.condition = condition
+        self.position = position
+        self.target = target
+        self.additive = additive
+
+
 def get_key(position):
     return int(round(position[0])), int(round(position[1]))
 

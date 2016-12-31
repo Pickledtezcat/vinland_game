@@ -475,16 +475,27 @@ class ManAction(object):
         avoiding = self.avoiding
         self.avoiding = self.check_too_close(self.location)
 
+        action = "CHOOSE_TILE"
+
         if avoiding and not self.avoiding:
-            self.target = None
-            self.end = self.start
+            action = "WAIT"
 
-        elif self.location == self.destination and not self.avoiding:
-            self.target = None
-            self.end = self.start
+        elif self.location == self.destination:
+            if not self.avoiding:
+                if self.agent.enemy_target:
+                    action = "FACE_TARGET"
+                else:
+                    action = "WAIT"
 
-        else:
+        if action == "CHOOSE_TILE":
             self.choose_tile()
+        elif action == "FACE_TARGET":
+            self.target = None
+            self.end = self.start
+            self.direction = self.agent.facing
+        elif action == "WAIT":
+            self.target = None
+            self.end = self.start
 
     def check_occupied(self, target_tile):
 

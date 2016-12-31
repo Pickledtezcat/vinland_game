@@ -29,13 +29,13 @@ class CameraControl(object):
     def control_movement(self):
         x, y = self.manager.input.virtual_mouse
 
-        self.on_edge = x > 0.98 or x < 0.02 or y > 0.98 or y < 0.02
+        self.on_edge = x > 0.99 or x < 0.01 or y > 0.99 or y < 0.01
         if self.on_edge:
-            self.pan_speed = max(0.0,(min(0.13, self.pan_speed + 0.001)))
+            self.pan_speed = max(0.0, (min(0.13, self.pan_speed + 0.001)))
             self.pan_vector = mathutils.Vector([x - 0.5, 0.5 - y, 0.0])
 
         else:
-            self.pan_speed = max(0.0,(min(0.1, self.pan_speed - 0.003)))
+            self.pan_speed = max(0.0, (min(0.1, self.pan_speed - 0.003)))
 
         if self.pan_speed > 0.01:
 

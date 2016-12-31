@@ -144,6 +144,9 @@ class GameLoop(object):
         self.particles = []
         self.LOS_manager = None
 
+        self.UI_orders = []
+        self.UI_mouse_over = False
+
         self.cursor_refresh = 0.0
         self.tile_over = None
         self.mouse_over_unit = None
@@ -228,13 +231,12 @@ class GameLoop(object):
                         "agents_update": self.agents_update,
                         "particle_update": self.particle_update,
                         "particle_light_update": self.particle_light_update,
-                        "set_movement_points": self.set_movement_points,
                         "get_cursor_location": self.get_cursor_location,
-                        "select_units": self.select_units,
                         "general_control": self.general_control,
                         "start_up": self.start_up,
                         "prep_level": self.prep_level,
                         "agent_commands": self.agent_commands,
+                        "process_UI_orders": self.process_UI_orders,
                         "main_state_machine": self.main_state_machine}
 
         if method_name in loop_methods:
@@ -277,6 +279,26 @@ class GameLoop(object):
 
         return distance
 
+    def process_UI_orders(self):
+
+        self.UI_mouse_over = False
+
+        if not self.movement_action and not self.select_point:
+
+            if len(self.UI_orders) > 0:
+                self.UI_mouse_over = True
+
+            for order in self.UI_orders:
+                if order.name == "MINI_MAP":
+
+                    cam_loc = order.position * (self.level_size * 8.0)
+                    # quarter_turn = mathutils.Euler((0.0, 0.0, math.radians(45.0)), 'XYZ')
+                    # cam_loc.rotate(quarter_turn)
+
+                    self.camera.camera_hook.worldPosition = cam_loc
+
+        self.UI_orders = []
+
     def agent_control(self):
 
         self.selected_agents = [agent for agent in self.agents if agent.selected]
@@ -286,17 +308,29 @@ class GameLoop(object):
         else:
             self.mouse_refresh = 6
 
-        if "right_drag" in self.input.buttons:
-            self.mouse_refresh = 3
-            self.set_movement_points(True)
-        else:
-            self.set_movement_points(False)
+        right_button = "right_drag" in self.input.buttons
+        left_button = "left_drag" in self.input.buttons
 
-        if "left_drag" in self.input.buttons:
-            self.mouse_refresh = 3
-            self.select_units(True)
+        if not self.UI_mouse_over:
+
+            if right_button:
+                self.mouse_refresh = 3
+                self.set_movement_points(True)
+            else:
+                self.set_movement_points(False)
+
+            if left_button:
+                self.mouse_refresh = 3
+                self.select_units(True)
+            else:
+                self.select_units(False)
+
         else:
-            self.select_units(False)
+            if not left_button:
+                self.select_units(False)
+
+            if not right_button:
+                self.set_movement_points(False)
 
         self.number_select()
 
@@ -399,7 +433,12 @@ class GameLoop(object):
 
     def get_cursor_location(self):
 
-        if self.mouse_timer > self.mouse_refresh:
+        busy = self.select_point or self.movement_action
+
+        if self.UI_mouse_over and not busy:
+            self.context = "UI"
+
+        elif self.mouse_timer > self.mouse_refresh:
             self.mouse_timer = 0
 
             ground_hit = self.mouse_hit_ray("ground")
@@ -414,6 +453,9 @@ class GameLoop(object):
                 self.mouse_over_unit = None
 
             context = "PAN"
+
+            if busy:
+                self.context = "SELECT"
 
             if self.mouse_over_unit:
                 if self.mouse_over_unit.team > 0:
@@ -430,8 +472,7 @@ class GameLoop(object):
 
             self.context = context
 
-        else:
-            self.mouse_timer += 1
+        self.mouse_timer += 1
 
     def number_select(self):
 
@@ -451,9 +492,6 @@ class GameLoop(object):
                     agent.commands.append(bgeutils.AgentCommand("NUMBER_SELECT", condition=bind, target=active_number, additive=additive))
 
     def select_units(self, select):
-
-        if select:
-            self.context = "SELECT"
 
         if select:
             if not self.select_point:
