@@ -253,8 +253,6 @@ class InfantryState(AgentState):
         self.agent.movement = None
         self.agent.moving = False
 
-        self.agent.avoid_radius = 3
-
     def update(self):
 
         self.agent.animation.update()
@@ -313,7 +311,6 @@ class InfantryIdle(InfantryState):
     def __init__(self, agent):
         super().__init__(agent)
 
-        self.agent.avoid_radius = 12
         self.agent.animation.survey_points()
         self.agent.movement = agent_actions.AgentTargeter(self.agent)
 

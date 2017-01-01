@@ -99,6 +99,7 @@ class Agent(object):
     moving = False
     off_road = False
     reversing = False
+    stance = "DEFEND"
 
     def __init__(self, manager, location, load_name, team=0):
 
@@ -302,6 +303,9 @@ class Agent(object):
                 self.stop_movement = True
                 self.enemy_target = command.target
 
+            if command.name == "STANCE_CHANGE":
+                self.stance = command.condition
+
         self.commands = []
 
         if self.selected:
@@ -474,6 +478,7 @@ class Soldier(object):
         self.agent = agent
         self.index = index
         self.dead = False
+        self.prone = False
         self.box = self.agent.box.scene.addObject("infantry_dummy", self.agent.box, 0)
         self.box.visible = False
         self.mesh = self.box.scene.addObject("infantry_dummy_mesh", self.box, 0)
@@ -517,7 +522,9 @@ class InfantrySquad(Agent):
         self.wide = load_details[0]
         self.deep = load_details[1]
         self.spacing = 3.0
+        self.scatter = 0.0
         self.avoid_radius = 12
+        self.prone = False
 
         self.size = 4
         self.tile_offset = (self.size * 0.5) - 0.5
@@ -574,13 +581,62 @@ class InfantrySquad(Agent):
 
     def set_formation(self):
 
-        spacing = self.spacing
-        half = self.spacing * 0.5
+        self.formation = []
 
-        for y in range(self.deep):
-            for x in range(self.wide):
-                x_loc = (-self.wide * half) + (x * spacing) + half
-                y_loc = (-self.deep * half) + (y * spacing) + half
+        order = [self.deep, self.wide]
+        spacing = self.spacing * 2.0
+        scatter = 0.0
+        y_offset = 0.0
+        x_offset = 0
+
+        if self.stance == "AGGRESSIVE":
+            self.prone = False
+            self.avoid_radius = 3
+            self.dynamic_stats['speed'] = 0.025
+            order = [self.deep, self.wide]
+            spacing = self.spacing * 1.5
+            scatter = spacing * 0.2
+
+        if self.stance == "SENTRY":
+            self.prone = False
+            self.avoid_radius = 12
+            self.dynamic_stats['speed'] = 0.02
+            order = [self.deep, self.wide]
+            spacing = self.spacing * 3.0
+            scatter = spacing * 0.5
+
+        if self.stance == "DEFEND":
+            self.prone = True
+            self.avoid_radius = 12
+            self.dynamic_stats['speed'] = 0.015
+            order = [self.deep, self.wide]
+            spacing = self.spacing * 2.0
+            scatter = spacing * 0.1
+
+        if self.stance == "FLANK":
+            self.prone = False
+            self.avoid_radius = 3
+            self.dynamic_stats['speed'] = 0.03
+            order = [self.wide, self.deep]
+            spacing = self.spacing
+            scatter = 0.5
+
+        half = spacing * 0.5
+
+        def s_value(scatter_value):
+            return scatter_value - (scatter_value * random.uniform(0.0, 2.0))
+
+        for y in range(order[0]):
+            for x in range(order[1]):
+
+                if order[0] > 1:
+                    y_offset = ((order[0] - 2) * spacing)
+
+                if order[1] % 2 != 0:
+                    x_offset = spacing * 0.5
+
+                x_loc = (-self.wide * half) + (x * spacing) + half + s_value(scatter) + x_offset
+                y_loc = (-self.deep * half) + (y * spacing) + half + s_value(scatter) - y_offset
 
                 self.formation.append(mathutils.Vector([x_loc, y_loc]))
 
@@ -666,6 +722,10 @@ class InfantrySquad(Agent):
                 self.destinations = []
                 self.stop_movement = True
                 self.enemy_target = command.target
+
+            if command.name == "STANCE_CHANGE":
+                self.stance = command.condition
+                self.set_formation()
 
         self.commands = []
 

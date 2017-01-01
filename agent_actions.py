@@ -298,12 +298,13 @@ class ManAction(object):
         self.start = None
         self.end = None
         self.direction = (1, 0)
-        self.speed_range = (0.02, 0.03)
         self.north = random.choice(["NE", "NW"])
         self.speed = 0.02
         self.timer = 0.0
         self.avoiding = False
         self.fidget = False
+        self.go_prone = 1.0
+        self.switching = 0
 
         self.frame = random.randint(0, 3)
         self.max_frame = 3
@@ -312,24 +313,70 @@ class ManAction(object):
 
         self.start_up()
 
+    def set_speed(self):
+        speed = self.agent.dynamic_stats.get('speed', 0.02)
+        self.speed = speed + random.uniform(0.0, 0.01)
+
     def update(self):
 
-        if self.timer >= 1.0:
-            self.timer = 0.0
-            self.get_next_tile()
-        else:
-            self.timer += self.speed
-            self.man.box.worldPosition = self.start.lerp(self.end, self.timer)
+        self.switch_stance()
+
+        if self.switching == 0:
+            if self.timer >= 1.0:
+                self.timer = 0.0
+                self.get_next_tile()
+            else:
+                self.timer += self.speed
+                self.man.box.worldPosition = self.start.lerp(self.end, self.timer)
 
         if self.agent.on_screen:
             self.animation()
 
+    def switch_stance(self):
+
+        if self.agent.prone and not self.man.prone:
+            self.switching = 1
+            if self.go_prone >= 1.0:
+                self.man.prone = True
+
+        elif not self.agent.prone and self.man.prone:
+            self.switching = -1
+            if self.go_prone <= 0.0:
+                self.man.prone = False
+
+        else:
+            self.switching = 0
+
+        self.go_prone = min(1.0, max(0.0, (self.go_prone + (self.speed * self.switching))))
+
     def frame_update(self):
 
-        if self.start == self.end:
-            mode = "default"
+        # for reference
+
+        action_names = ["default",
+                        "walk",
+                        "shoot",
+                        "go_prone",
+                        "get_up",
+                        "prone_shoot",
+                        "prone_crawl",
+                        "prone_death",
+                        "death"]
+
+        if self.switching != 0:
+            mode = "go_prone"
         else:
-            mode = "walk"
+            if self.man.prone:
+                if self.start == self.end:
+                    mode = "prone_default"
+                else:
+                    mode = "prone_crawl"
+
+            else:
+                if self.start == self.end:
+                    mode = "default"
+                else:
+                    mode = "walk"
 
         directions_dict = {(-1, -1): "W",
                            (-1, 0): "NW",
@@ -348,12 +395,19 @@ class ManAction(object):
         frame = self.frame
 
         defaults = ["default", "prone_shoot", "trench_default"]
+        switching = ["go_prone", "get_up"]
 
-        if mode in defaults and not self.fidget:
+        if mode in switching:
+            frame = min(3, int(self.go_prone * 4.0))
+
+        elif mode in defaults and not self.fidget:
             frame = 0
 
-        mesh_name = self.man.mesh_name
+        elif mode == "prone_default":
+            frame = 0
+            mode = "get_up"
 
+        mesh_name = self.man.mesh_name
         self.man.mesh.replaceMesh("{}_{}${}_{}".format(mesh_name, mode, direction, frame))
 
     def animation(self):
@@ -391,7 +445,7 @@ class ManAction(object):
 
     def get_destination(self):
 
-        self.speed = random.uniform(*self.speed_range)
+        self.set_speed()
 
         location = self.agent.box.worldPosition.copy()
         location.z = 0.0

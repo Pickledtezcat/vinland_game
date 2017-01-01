@@ -279,7 +279,18 @@ class GameLoop(object):
 
         return distance
 
+    def hot_keys(self):
+
+        stance_hotkeys = ["AGGRESSIVE", "DEFEND", "SENTRY", "FLANK"]
+
+        for stance in stance_hotkeys:
+            if stance in self.input.keys:
+                for agent in self.selected_agents:
+                    agent.commands.append(bgeutils.AgentCommand("STANCE_CHANGE", condition=stance))
+
     def process_UI_orders(self):
+
+        self.hot_keys()
 
         self.UI_mouse_over = False
 
@@ -298,6 +309,7 @@ class GameLoop(object):
                     self.camera.camera_hook.worldPosition = cam_loc
 
         self.UI_orders = []
+
 
     def agent_control(self):
 

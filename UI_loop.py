@@ -41,20 +41,23 @@ class UIBar(object):
         self.agent = agent
         self.camera = camera
         self.bar = adder.scene.addObject("agent_UI", adder, 0)
+        self.UI_bar = bgeutils.get_ob("UI_bar", self.bar.childrenRecursive)
         self.health_bar = bgeutils.get_ob("health_bar", self.bar.childrenRecursive)
         self.shock_bar = bgeutils.get_ob("shock_bar", self.bar.childrenRecursive)
         self.rank_icon = bgeutils.get_ob("rank_icon", self.bar.childrenRecursive)
         self.group_number = bgeutils.get_ob("group_number", self.bar.childrenRecursive)
         self.current_number = -1
-        self.group_icon = bgeutils.get_ob("group_icon", self.bar.childrenRecursive)
+        self.stance_icon = bgeutils.get_ob("stance_icon", self.bar.childrenRecursive)
+        self.current_stance = None
 
         if agent.team != 0:
 
+            keepers = [self.health_bar, self.shock_bar, self.UI_bar]
+
             for ob in self.bar.childrenRecursive:
-                if ob != self.health_bar and ob != self.shock_bar:
+                if ob not in keepers:
                     ob.endObject()
 
-        # TODO set up UI bars to feature mode icons, and other things
 
         # self.health_bar.color = [0.0, 1.0, 0.0, 1.0]
         # self.shock_bar.color = [1.0, 0.0, 0.0, 1.0]
@@ -64,7 +67,6 @@ class UIBar(object):
         self.bar.endObject()
 
     def set_visible(self, visible):
-        self.bar.visible = visible
 
         for bar_part in self.bar.childrenRecursive:
             bar_part.visible = visible
@@ -93,6 +95,13 @@ class UIBar(object):
                     number_mesh = "group_number_none"
 
                 self.group_number.replaceMesh(number_mesh)
+
+            stance = self.agent.stance
+            if stance != self.current_stance:
+                self.current_stance = stance
+                stance_mesh = "UI_stance_{}".format(stance)
+                self.stance_icon.replaceMesh(stance_mesh)
+
 
 class UILoop(object):
     def __init__(self, cont, main_loop):
