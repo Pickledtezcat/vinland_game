@@ -303,7 +303,7 @@ class ManAction(object):
         self.timer = 0.0
         self.avoiding = False
         self.fidget = False
-        self.go_prone = 1.0
+        self.go_prone = 0.0
         self.switching = 0
 
         self.frame = random.randint(0, 3)

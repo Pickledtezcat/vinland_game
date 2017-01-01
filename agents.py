@@ -99,7 +99,7 @@ class Agent(object):
     moving = False
     off_road = False
     reversing = False
-    stance = "DEFEND"
+    stance = "FLANK"
 
     def __init__(self, manager, location, load_name, team=0):
 
