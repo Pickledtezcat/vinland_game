@@ -103,6 +103,18 @@ def interpolate_float(current, target, factor):
     return (current * (1.0 - factor)) + (target * factor)
 
 
+def add_spaces(target_string):
+
+    if target_string:
+
+        underscores = target_string.split("_")
+        spaces = " ".join(underscores)
+
+        return spaces
+
+    return None
+
+
 def ground_ray(game_object, survey_point=None):
 
     if survey_point:

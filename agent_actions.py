@@ -47,7 +47,7 @@ class AgentAnimation(object):
         self.vehicle = vehicle
 
         if self.vehicle:
-            self.trails = VehicleTrails(self.agent, (self.agent.stats['chassis size'] + 1.0) * 0.5)
+            self.trails = VehicleTrails(self.agent, (self.agent.stats["chassis_size"] + 1.0) * 0.5)
 
         self.start_hit = None
         self.end_hit = None
@@ -137,7 +137,7 @@ class AgentAnimation(object):
                 slope.z = 0.0
                 self.slope = slope
 
-                speed = self.agent.dynamic_stats['display_speed']
+                speed = self.agent.dynamic_stats["display_speed"]
 
                 self.agent.display_object.movement_action(speed)
                 self.trails.movement_trail(abs(speed))
@@ -188,7 +188,7 @@ class AgentTargeter(object):
 
         if not self.done:
             self.agent.throttle_target = 0.2
-            speed = self.agent.dynamic_stats.get('turning_speed', 0.02) / self.scale
+            speed = self.agent.dynamic_stats.get("turning_speed", 0.02) / self.scale
 
             if self.progress < 1.0:
                 self.progress = min(1.0, self.progress + speed)
@@ -248,7 +248,7 @@ class AgentMovement(object):
             current_position = self.agent.box.worldPosition.copy()
             movement_vector = self.end - current_position
 
-            speed = self.agent.dynamic_stats.get('speed', 0.02)
+            speed = self.agent.dynamic_stats.get("speed", 0.02)
             if self.agent.extra_movement:
                 speed += self.agent.extra_movement
                 self.agent.extra_movement = None
@@ -314,7 +314,7 @@ class ManAction(object):
         self.start_up()
 
     def set_speed(self):
-        speed = self.agent.dynamic_stats.get('speed', 0.02)
+        speed = self.agent.dynamic_stats.get("speed", 0.02)
         self.speed = speed + random.uniform(0.0, 0.01)
 
     def update(self):
@@ -752,7 +752,7 @@ class VehicleCombatControl(CombatControl):
     def __init__(self, agent):
         super().__init__(agent)
 
-        if self.agent.stats['turret size'] > 0:
+        if self.agent.stats["turret_size"] > 0:
             self.turret = self.agent.display_object.turret
             self.turret_rest = self.turret.localTransform
 
@@ -765,13 +765,13 @@ class VehicleCombatControl(CombatControl):
 
                 enemy_angle = local_y.angle_signed(target_vector, 0.0) * -1.0
 
-                rot_mat = mathutils.Matrix.Rotation(enemy_angle, 4, 'Z')
+                rot_mat = mathutils.Matrix.Rotation(enemy_angle, 4, "Z")
                 turret_target = self.turret_rest * rot_mat
 
                 self.turret.localTransform = self.turret.localTransform.lerp(turret_target, 0.02)
 
             else:
-                rot_mat = mathutils.Matrix.Rotation(0.0, 4, 'Z')
+                rot_mat = mathutils.Matrix.Rotation(0.0, 4, "Z")
                 turret_target = self.turret_rest * rot_mat
                 self.turret.localTransform = self.turret.localTransform.lerp(turret_target, 0.02)
 

@@ -1,5 +1,5 @@
 import bge
-from bgeutils import *
+import bgeutils
 from mathutils import Vector
 
 
@@ -63,7 +63,7 @@ class VehicleDisplay(object):
         sections = ["FRONT", "LEFT", "RIGHT", "BACK", "TURRET"]
 
         for section in sections:
-            display_text = get_ob(section, self.display_window.children)
+            display_text = bgeutils.get_ob(section, self.display_window.children)
             if display_text:
                 current_section = self.vehicle_stats['sections'][section]
 
@@ -99,7 +99,7 @@ class Button(object):
 
         self.object_box['button_click'] = True
         self.object_box['button_owner'] = self
-        self.object_box['mouse_over'] = mouse_over
+        self.object_box['mouse_over'] = bgeutils.add_spaces(mouse_over)
 
         if color:
             self.color = color
@@ -109,7 +109,7 @@ class Button(object):
         self.object_box.color = self.color
         self.object_box.worldPosition = location
 
-        self.text_object = get_ob("button_text", self.object_box.children)
+        self.text_object = bgeutils.get_ob("button_text", self.object_box.children)
 
         self.text_entry = text_entry
 
@@ -118,7 +118,7 @@ class Button(object):
             self.text_contents = ""
             self.text_object['Text'] = ""
         else:
-            self.text_object['Text'] = label_text
+            self.text_object['Text'] = bgeutils.add_spaces(label_text)
 
         large_boxes = ["image_box", "text_box", "large_text_box"]
         if button_size not in large_boxes:

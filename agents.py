@@ -358,10 +358,10 @@ class Agent(object):
 
     def set_dynamic_stats(self):
 
-        self.dynamic_stats = {'handling': 0.5, 'acceleration': 0.5, 'speed': 0.2, "abs_speed": 0.2,
-                              'crew': 1.0, 'drive': 1.0, 'ammo_remaining': 0.0, 'stores_remaining': 0.0, 'HP': 0,
-                              'shock': 0,
-                              'turning_speed': 0.2, 'display_speed': 0.0, 'weapons': None}
+        self.dynamic_stats = {"handling": 0.5, "acceleration": 0.5, "speed": 0.2, "abs_speed": 0.2,
+                              "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
+                              "shock": 0,
+                              "turning_speed": 0.2, "display_speed": 0.0, "weapons": None}
 
     def update_dynamic_stats(self):
         pass
@@ -392,9 +392,9 @@ class VehicleAgent(Agent):
         if self.load_name in vehicle_dict:
             vehicle = vehicle_dict[self.load_name]
         else:
-            vehicle = vehicle_dict["light tank"]
+            vehicle = vehicle_dict["light_tank"]
 
-        self.stats = vehicle['stats']
+        self.stats = vehicle["stats"]
 
         if self.team == 0:
             cammo = 2
@@ -403,7 +403,7 @@ class VehicleAgent(Agent):
 
         self.display_object = model_display.VehicleModel(self.hull, self.stats, cammo=cammo)
         self.stats = self.display_object.stats
-        self.size = 3 + self.stats['chassis size']
+        self.size = 3 + self.stats["chassis_size"]
         self.tile_offset = (self.size * 0.5) - 0.5
 
         self.set_shell()
@@ -423,10 +423,10 @@ class VehicleAgent(Agent):
 
     def set_dynamic_stats(self):
 
-        self.dynamic_stats = {'handling': 0.0, 'acceleration': 0.0, 'speed': 0.02, "abs_speed": 0.0,
-                              'crew': 1.0, 'drive': 1.0, 'ammo_remaining': 0.0, 'stores_remaining': 0.0, 'HP': 0,
-                              'shock': 0,
-                              'turning_speed': 0.02, 'display_speed': 0.0, 'weapons': None}
+        self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.02, "abs_speed": 0.0,
+                              "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
+                              "shock": 0,
+                              "turning_speed": 0.02, "display_speed": 0.0, "weapons": None}
 
         # add more stats here
 
@@ -439,36 +439,36 @@ class VehicleAgent(Agent):
         if self.throttle > self.throttle_target:
             acceleration = 0.2
         else:
-            acceleration = self.dynamic_stats['acceleration']
+            acceleration = self.dynamic_stats["acceleration"]
 
         self.throttle = bgeutils.interpolate_float(self.throttle, self.throttle_target, acceleration)
 
         drive_mod = 1.0
 
         if self.reversing:
-            if self.stats['drive'] == "WHEELED":
+            if self.stats["drive"] == "WHEELED":
                 drive_mod = 0.3
-            elif self.stats['drive'] == "HALFTRACK":
+            elif self.stats["drive"] == "HALFTRACK":
                 drive_mod = 0.6
             else:
                 drive_mod = 0.8
 
         if self.off_road:
-            self.dynamic_stats['handling'] = self.stats['off road handling']
-            self.dynamic_stats['abs_speed'] = self.stats['off road'] * 0.003  # 0.0046
-            self.dynamic_stats['acceleration'] = self.stats['off road handling'] * 0.002
+            self.dynamic_stats["handling"] = self.stats["off_road_handling"]
+            self.dynamic_stats["abs_speed"] = self.stats["off_road"] * 0.003  # 0.0046
+            self.dynamic_stats["acceleration"] = self.stats["off_road_handling"] * 0.002
         else:
-            self.dynamic_stats['handling'] = self.stats['on road handling']
-            self.dynamic_stats['abs_speed'] = self.stats['on road'] * 0.003  # 0.0046
-            self.dynamic_stats['acceleration'] = self.stats['on road handling'] * 0.002
+            self.dynamic_stats["handling"] = self.stats["on_road_handling"]
+            self.dynamic_stats["abs_speed"] = self.stats["on_road"] * 0.003  # 0.0046
+            self.dynamic_stats["acceleration"] = self.stats["on_road_handling"] * 0.002
 
-        self.dynamic_stats['speed'] = (self.dynamic_stats['abs_speed'] * drive_mod) * self.throttle
-        self.dynamic_stats["turning_speed"] = self.dynamic_stats['acceleration'] * 0.8
-        self.dynamic_stats['speed'] = self.dynamic_stats['abs_speed'] * self.throttle
-        self.dynamic_stats['display_speed'] = self.dynamic_stats['speed'] * 4.0
+        self.dynamic_stats["speed"] = (self.dynamic_stats["abs_speed"] * drive_mod) * self.throttle
+        self.dynamic_stats["turning_speed"] = self.dynamic_stats["acceleration"] * 0.8
+        self.dynamic_stats["speed"] = self.dynamic_stats["abs_speed"] * self.throttle
+        self.dynamic_stats["display_speed"] = self.dynamic_stats["speed"] * 4.0
 
         if self.reversing:
-            self.dynamic_stats['display_speed'] *= -1.0
+            self.dynamic_stats["display_speed"] *= -1.0
 
 
 class Soldier(object):
@@ -537,10 +537,10 @@ class InfantrySquad(Agent):
 
     def set_dynamic_stats(self):
 
-        self.dynamic_stats = {'handling': 0.0, 'acceleration': 0.0, 'speed': 0.03, "abs_speed": 0.0,
-                              'crew': 1.0, 'drive': 1.0, 'ammo_remaining': 0.0, 'stores_remaining': 0.0, 'HP': 0,
-                              'shock': 0,
-                              'turning_speed': 0.015, 'display_speed': 0.0, 'weapons': None}
+        self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.03, "abs_speed": 0.0,
+                              "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
+                              "shock": 0,
+                              "turning_speed": 0.015, "display_speed": 0.0, "weapons": None}
 
     def add_box(self):
         box = self.manager.scene.addObject("agent", self.manager.own, 0)
@@ -592,7 +592,7 @@ class InfantrySquad(Agent):
         if self.stance == "AGGRESSIVE":
             self.prone = False
             self.avoid_radius = 3
-            self.dynamic_stats['speed'] = 0.025
+            self.dynamic_stats["speed"] = 0.025
             order = [self.deep, self.wide]
             spacing = self.spacing * 1.5
             scatter = spacing * 0.2
@@ -600,7 +600,7 @@ class InfantrySquad(Agent):
         if self.stance == "SENTRY":
             self.prone = False
             self.avoid_radius = 12
-            self.dynamic_stats['speed'] = 0.02
+            self.dynamic_stats["speed"] = 0.02
             order = [self.deep, self.wide]
             spacing = self.spacing * 3.0
             scatter = spacing * 0.5
@@ -608,7 +608,7 @@ class InfantrySquad(Agent):
         if self.stance == "DEFEND":
             self.prone = True
             self.avoid_radius = 12
-            self.dynamic_stats['speed'] = 0.015
+            self.dynamic_stats["speed"] = 0.015
             order = [self.deep, self.wide]
             spacing = self.spacing * 2.0
             scatter = spacing * 0.1
@@ -616,7 +616,7 @@ class InfantrySquad(Agent):
         if self.stance == "FLANK":
             self.prone = False
             self.avoid_radius = 3
-            self.dynamic_stats['speed'] = 0.03
+            self.dynamic_stats["speed"] = 0.03
             order = [self.wide, self.deep]
             spacing = self.spacing
             scatter = 0.5

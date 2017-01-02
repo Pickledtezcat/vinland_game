@@ -1,16 +1,16 @@
 import bge
-from bgeutils import *
+import buildutils
+import bgeutils
 import random
 import game_input
 import vehicle_parts
-from mathutils import Vector, Color
+import mathutils
 import math
 
 import model_display
-
 import json
 
-from buildutils import *
+
 
 
 class BaseBuilder(object):
@@ -48,9 +48,9 @@ class BaseBuilder(object):
         self.tech_level_dict = self.get_tech_levels()
 
         self.mouse = self.scene.addObject("mouse_pointer", self.own, 0)
-        self.mouse_text = get_ob("info_text", self.mouse.children)
+        self.mouse_text = bgeutils.get_ob("info_text", self.mouse.children)
         self.mouse_text.color = [1.0, 0.8, 0.0, 1.0]
-        self.mouse_text_shadow = get_ob("shadow", self.mouse.children)
+        self.mouse_text_shadow = bgeutils.get_ob("shadow", self.mouse.children)
         self.mouse_text_shadow.color = [0.0, 0.0, 0.01, 1.0]
         self.mouse_text_shadow.localScale = [0.0, 0.0, 0.0]
 
@@ -88,24 +88,24 @@ class BaseBuilder(object):
 
     def part_description(self, part):
 
-        description = split_string_in_lines(part['description'], 24)
-        size = "SIZE: ({}, {})".format(part["x_size"], part['y_size'])
+        description = buildutils.split_string_in_lines(part["description"], 24)
+        size = "SIZE:_({},_{})".format(part["x_size"], part["y_size"])
         note = ""
 
-        if part['location'] == -1:
-            note = "{}\n*CHASSIS ONLY.".format(note)
-        if part['location'] == 1:
-            note = "{}\n*TURRET ONLY.".format(note)
-        if part['location'] == 2:
-            note = "{}\n*TURRET-LESS VEHICLES ONLY.".format(note)
+        if part["location"] == -1:
+            note = "{}\n*CHASSIS_ONLY.".format(note)
+        if part["location"] == 1:
+            note = "{}\n*TURRET_ONLY.".format(note)
+        if part["location"] == 2:
+            note = "{}\n*TURRET-LESS_VEHICLES_ONLY.".format(note)
 
         tons = "TON"
-        if part['weight'] > 1.0 or part['weight'] < 1.0:
+        if part["weight"] > 1.0 or part["weight"] < 1.0:
             tons = "TONS"
 
-        weight = "{} {}".format(part['weight'], tons)
-        if part['rating'] != 0:
-            rating = "RATING: {}".format(part['rating'])
+        weight = "{}_{}".format(part["weight"], tons)
+        if part["rating"] != 0:
+            rating = "RATING:_{}".format(part["rating"])
         else:
             rating = ""
         help_text = "{}\n{}\n{}\n{}{}".format(size, weight, rating, description, note)
@@ -148,7 +148,7 @@ class SaveMode(BaseBuilder):
         self.background = self.scene.addObject("save_background", self.own, 0)
         self.background.worldPosition.z -= 0.1
 
-        self.option_buttons = get_ob("option_buttons", self.background.children)
+        self.option_buttons = bgeutils.get_ob("option_buttons", self.background.children)
         self.vehicle_name_box = None
 
         self.refresh_controls = True
@@ -169,8 +169,8 @@ class SaveMode(BaseBuilder):
     def place_buttons(self):
         self.clean_buttons()
 
-        controls = [["save name", "Click to enter save name here.", True], ["save", "Confirm save.", False],
-                    ["cancel", "Go back to builder.", False]]
+        controls = [["save_name", "Click_to_enter_save_name_here.", True], ["save", "Confirm_save.", False],
+                    ["cancel", "Go_back_to_builder.", False]]
 
         positions = [(0, 0), (-0.5, -1.0), (0.5, -1.0)]
 
@@ -194,8 +194,8 @@ class SaveMode(BaseBuilder):
             location.x += position[0] * 1.5
             location.y += position[1] * 0.85
 
-            button = Button(self, button_type, control_type, label, location, mouse_over=mouse_help,
-                            text_entry=text_entry)
+            button = buildutils.Button(self, button_type, control_type, label, location, mouse_over=mouse_help,
+                                       text_entry=text_entry)
             if text_entry:
                 self.vehicle_name_box = button
 
@@ -223,10 +223,10 @@ class SaveMode(BaseBuilder):
         help_text = ""
 
         if button_hit[0]:
-            owner = button_hit[0]['button_owner']
+            owner = button_hit[0]["button_owner"]
             if owner.name == "save":
                 if self.left_button:
-                    in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
+                    in_path = bgeutils.bge.logic.expandPath("//vehicles/saved_vehicles.txt")
 
                     try:
                         with open(in_path, "r") as infile:
@@ -238,9 +238,9 @@ class SaveMode(BaseBuilder):
                                         self.manager.contents}
                     current_stats = self.manager.vehicle_stats
 
-                    new_vehicle = {'name': self.vehicle_name_box.text_contents,
-                                   'stats': current_stats,
-                                   'contents': current_contents}
+                    new_vehicle = {"name": self.vehicle_name_box.text_contents,
+                                   "stats": current_stats,
+                                   "contents": current_contents}
 
                     save_name = self.vehicle_name_box.text_contents.lower()
 
@@ -248,7 +248,7 @@ class SaveMode(BaseBuilder):
                         message_text = self.scene.addObject("text_object", self.option_buttons, 240)
                         message_text.worldPosition.y -= 4.0
                         message_text.localScale *= 0.2
-                        message_text['Text'] = "That name is already in use."
+                        message_text["Text"] = "That_name_is_already_in_use."
                         message_text.color = [1.0, 0.0, 0.0, 1.0]
                         self.refresh_controls = True
 
@@ -256,12 +256,12 @@ class SaveMode(BaseBuilder):
                         message_text = self.scene.addObject("text_object", self.option_buttons, 60)
                         message_text.worldPosition.y -= 4.0
                         message_text.localScale *= 0.2
-                        message_text['Text'] = "saved."
+                        message_text["Text"] = "saved."
                         message_text.color = [0.0, 1.0, 0.0, 1.0]
 
                         vehicle_dict[save_name] = new_vehicle
 
-                        out_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
+                        out_path = bgeutils.bge.logic.expandPath("//vehicles/saved_vehicles.txt")
                         with open(out_path, "w") as outfile:
                             json.dump(vehicle_dict, outfile)
 
@@ -271,15 +271,15 @@ class SaveMode(BaseBuilder):
                 if self.left_button:
                     self.mode_change = "DebugVehicleBuilder"
 
-            elif owner.name == "save name":
+            elif owner.name == "save_name":
                 if self.left_button:
                     owner.clicked = True
 
             if button_hit[0].get("mouse_over"):
-                help_text = button_hit[0]['mouse_over']
+                help_text = button_hit[0]["mouse_over"]
 
         if help_text:
-            self.mouse_text['Text'] = help_text
+            self.mouse_text["Text"] = help_text
             longest = sorted(help_text.split("\n"), key=len, reverse=True)[0]
 
             x_length = len(longest) * 0.14
@@ -287,7 +287,7 @@ class SaveMode(BaseBuilder):
             self.mouse_text_shadow.localScale = [x_length, y_length, 0.0]
 
         else:
-            self.mouse_text['Text'] = ""
+            self.mouse_text["Text"] = ""
             self.mouse_text_shadow.localScale = [0.0, 0.0, 0.0]
 
         if mouse_hit[0]:
@@ -303,7 +303,7 @@ class ExitMode(BaseBuilder):
         self.background = self.scene.addObject("exit_background", self.own, 0)
         self.background.worldPosition.z -= 0.1
 
-        self.option_buttons = get_ob("option_buttons", self.background.children)
+        self.option_buttons = bgeutils.get_ob("option_buttons", self.background.children)
 
         self.refresh_controls = True
         self.buttons = []
@@ -324,8 +324,8 @@ class ExitMode(BaseBuilder):
 
         self.clean_buttons()
 
-        controls = [["really exit?", "", True], ["yes", "Sure, exit.", False],
-                    ["no", "Go back to builder.", False]]
+        controls = [["really_exit?", "", True], ["yes", "Sure,_exit.", False],
+                    ["no", "Go_back_to_builder.", False]]
 
         location = self.option_buttons.worldPosition.copy()
 
@@ -338,8 +338,8 @@ class ExitMode(BaseBuilder):
 
             mouse_help = controls[i][1]
 
-            button = Button(self, "round_button", control_type, label, location, mouse_over=mouse_help,
-                            text_box=text_box)
+            button = buildutils.Button(self, "round_button", control_type, label, location, mouse_over=mouse_help,
+                                       text_box=text_box)
             location.y -= 0.85
 
             self.buttons.append(button)
@@ -363,20 +363,20 @@ class ExitMode(BaseBuilder):
         help_text = ""
 
         if button_hit[0]:
-            owner = button_hit[0]['button_owner']
+            owner = button_hit[0]["button_owner"]
             if owner.name == "yes":
                 if self.left_button:
-                    bge.logic.endGame()
+                    bgeutils.bge.logic.endGame()
 
             elif owner.name == "no":
                 if self.left_button:
                     self.mode_change = "DebugVehicleBuilder"
 
             if button_hit[0].get("mouse_over"):
-                help_text = button_hit[0]['mouse_over']
+                help_text = button_hit[0]["mouse_over"]
 
         if help_text:
-            self.mouse_text['Text'] = help_text
+            self.mouse_text["Text"] = help_text
             longest = sorted(help_text.split("\n"), key=len, reverse=True)[0]
 
             x_length = len(longest) * 0.14
@@ -384,7 +384,7 @@ class ExitMode(BaseBuilder):
             self.mouse_text_shadow.localScale = [x_length, y_length, 0.0]
 
         else:
-            self.mouse_text['Text'] = ""
+            self.mouse_text["Text"] = ""
             self.mouse_text_shadow.localScale = [0.0, 0.0, 0.0]
 
         if mouse_hit[0]:
@@ -400,18 +400,18 @@ class DebugBuilderMode(BaseBuilder):
         self.background = self.scene.addObject("builder_background", self.own, 0)
         self.background.worldPosition.z -= 0.1
 
-        self.chassis_buttons = get_ob("chassis_buttons", self.background.children)
-        self.parts_buttons = get_ob("parts_buttons", self.background.children)
-        self.item_type_buttons = get_ob("item_type_buttons", self.background.children)
-        self.option_buttons = get_ob("option_buttons", self.background.children)
-        self.part_list_text = get_ob("part_list_text", self.background.children)
+        self.chassis_buttons = bgeutils.get_ob("chassis_buttons", self.background.children)
+        self.parts_buttons = bgeutils.get_ob("parts_buttons", self.background.children)
+        self.item_type_buttons = bgeutils.get_ob("item_type_buttons", self.background.children)
+        self.option_buttons = bgeutils.get_ob("option_buttons", self.background.children)
+        self.part_list_text = bgeutils.get_ob("part_list_text", self.background.children)
 
-        self.info_text = get_ob("info_text", self.background.children)
-        self.layout = get_ob("layout", self.background.children)
-        self.faction_controls = get_ob("faction_controls", self.background.children)
-        self.cammo_buttons = get_ob("cammo_buttons", self.background.children)
+        self.info_text = bgeutils.get_ob("info_text", self.background.children)
+        self.layout = bgeutils.get_ob("layout", self.background.children)
+        self.faction_controls = bgeutils.get_ob("faction_controls", self.background.children)
+        self.cammo_buttons = bgeutils.get_ob("cammo_buttons", self.background.children)
 
-        self.model_display = get_ob("model_display", self.background.children)
+        self.model_display = bgeutils.get_ob("model_display", self.background.children)
         self.model_rotation = 0.0
 
         self.faction_label = vehicle_parts.faction_dict[self.manager.faction]
@@ -461,10 +461,10 @@ class DebugBuilderMode(BaseBuilder):
         location = self.parts_buttons.worldPosition.copy()
 
         item_keys = [key for key in self.parts_dict if
-                     self.parts_dict[key]['part_type'] == self.item_type and self.parts_dict[key]
-                     ['level'] <= self.tech_level_dict.get(self.parts_dict[key]['part_type'], 1)]
+                     self.parts_dict[key]["part_type"] == self.item_type and self.parts_dict[key]
+                     ["level"] <= self.tech_level_dict.get(self.parts_dict[key]["part_type"], 1)]
 
-        parts = sorted(item_keys, key=lambda my_key: self.parts_dict[my_key]['level'])
+        parts = sorted(item_keys, key=lambda my_key: self.parts_dict[my_key]["level"])
 
         x = 0
         y = 0
@@ -473,12 +473,12 @@ class DebugBuilderMode(BaseBuilder):
             part = self.parts_dict[part_key]
 
             button_color = self.color_dict[self.item_type]
-            names = part['name'].split()
+            names = part["name"].split()
 
             label = "\n".join(["{0: ^12}".format(name).upper() for name in names])
             button_location = [location[0] + (x * 1.2), location[1] - (y * 0.9), location[2]]
-            button = Button(self, "medium_button", "PART", label, button_location, part_key=part_key,
-                            color=button_color, mouse_over="", scale=0.8)
+            button = buildutils.Button(self, "medium_button", "PART", label, button_location, part_key=part_key,
+                                       color=button_color, mouse_over="", scale=0.8)
 
             if x > 4:
                 x = 0
@@ -503,16 +503,16 @@ class DebugBuilderMode(BaseBuilder):
         location = self.chassis_buttons.worldPosition.copy()
 
         chassis_info = self.chassis_dict[self.chassis_size]
-        chassis_name = chassis_info['name']
+        chassis_name = chassis_info["name"]
         turret_info = self.turret_dict[self.turret_size]
-        turret_name = turret_info['name'].upper()
+        turret_name = turret_info["name"].upper()
 
-        chassis_controls = [["chassis_smaller", "<<", "small_button", "Set chassis size smaller."],
+        chassis_controls = [["chassis_smaller", "<<", "small_button", "Set_chassis_size_smaller."],
                             ["chassis_reset", chassis_name, "medium_button", None],
-                            ["chassis_larger", ">>", "small_button", "Set chassis size larger."],
-                            ["turret_smaller", "<<", "small_button", "Set turret size smaller."],
+                            ["chassis_larger", ">>", "small_button", "Set_chassis_size_larger."],
+                            ["turret_smaller", "<<", "small_button", "Set_turret_size_smaller."],
                             ["turret_reset", turret_name, "medium_button", None],
-                            ["turret_larger", ">>", "small_button", "Set turret size larger."]]
+                            ["turret_larger", ">>", "small_button", "Set_turret_size_larger."]]
 
         for i in range(len(chassis_controls)):
             details = chassis_controls[i]
@@ -531,8 +531,8 @@ class DebugBuilderMode(BaseBuilder):
             if not mouse_help:
                 text_box = True
 
-            button = Button(self, button_type, name, label, location, mouse_over=mouse_help, text_box=text_box,
-                            scale=0.75)
+            button = buildutils.Button(self, button_type, name, label, location, mouse_over=mouse_help, text_box=text_box,
+                                       scale=0.75)
             location.x += 1.0
 
             self.controls.append(button)
@@ -542,16 +542,16 @@ class DebugBuilderMode(BaseBuilder):
         if self.manager.game_turn == 48:
             self.year += "!"
 
-        faction_name = "faction: {}".format(self.faction_label)
-        game_turn = "turn: {}".format(self.manager.game_turn)
-        year = "year: {}".format(self.year)
+        faction_name = "faction:_{}".format(self.faction_label)
+        game_turn = "turn:_{}".format(self.manager.game_turn)
+        year = "year:_{}".format(self.year)
 
-        faction_controls = [["faction_less", "<<", "small_button", "Change faction."],
+        faction_controls = [["faction_less", "<<", "small_button", "Change_faction."],
                             ["faction_name", faction_name, "medium_button", None],
-                            ["faction_more", ">>", "small_button", "Change faction."],
-                            ["turn_less", "<<", "small_button", "Change game turn."],
+                            ["faction_more", ">>", "small_button", "Change_faction."],
+                            ["turn_less", "<<", "small_button", "Change_game_turn."],
                             ["turn", game_turn, "medium_button", None],
-                            ["turn_more", ">>", "small_button", "Change game turn."],
+                            ["turn_more", ">>", "small_button", "Change_game_turn."],
                             ["year", year, "medium_button", None]]
 
         location = self.faction_controls.worldPosition.copy()
@@ -573,16 +573,16 @@ class DebugBuilderMode(BaseBuilder):
             if not mouse_help:
                 text_box = True
 
-            button = Button(self, button_type, name, label, location, mouse_over=mouse_help, text_box=text_box,
-                            scale=0.75)
+            button = buildutils.Button(self, button_type, name, label, location, mouse_over=mouse_help, text_box=text_box,
+                                       scale=0.75)
             location.x += 1.0
 
             self.controls.append(button)
 
         location = self.cammo_buttons.worldPosition.copy()
 
-        camo_text = Button(self, "round_button", "cam_text_box", "camouflage:", location, mouse_over="", text_box=True,
-                           scale=0.65)
+        camo_text = buildutils.Button(self, "round_button", "cam_text_box", "camouflage:", location, mouse_over="", text_box=True,
+                                      scale=0.65)
         self.controls.append(camo_text)
         location.x += 0.5
 
@@ -594,9 +594,9 @@ class DebugBuilderMode(BaseBuilder):
 
             cammo_name = "cammo_{}".format(c)
             cammo_label = "{0: ^4}".format(c +1)
-            camo_button = Button(self, "white_button", cammo_name, cammo_label, location,
-                                 mouse_over="Set display camouflage.",
-                                 scale=0.45, color=cammo)
+            camo_button = buildutils.Button(self, "white_button", cammo_name, cammo_label, location,
+                                            mouse_over="Set_display_camouflage.",
+                                            scale=0.45, color=cammo)
 
             self.controls.append(camo_button)
 
@@ -614,14 +614,14 @@ class DebugBuilderMode(BaseBuilder):
             if item_type == self.item_type:
                 text_box = True
 
-            button = Button(self, "round_button", item_type, label, location, color=button_color, mouse_over=mouse_help,
-                            scale=0.85, text_box=text_box)
+            button = buildutils.Button(self, "round_button", item_type, label, location, color=button_color, mouse_over=mouse_help,
+                                       scale=0.85, text_box=text_box)
             location.y -= 0.75
 
             self.controls.append(button)
 
-        controls = [["check", "Evaluate design\nperformance."], ["save", "Save this\ndesign."],
-                    ["load", "Load another\ndesign."], ["exit", "back to main\nmenu."]]
+        controls = [["check", "Evaluate_design\nperformance."], ["save", "Save_this\ndesign."],
+                    ["load", "Load_another\ndesign."], ["exit", "back_to_main\nmenu."]]
 
         location = self.option_buttons.worldPosition.copy()
 
@@ -630,7 +630,7 @@ class DebugBuilderMode(BaseBuilder):
             label = "{0: ^10}".format(control_type.upper())
             mouse_help = controls[i][1]
 
-            button = Button(self, "round_button", control_type, label, location, mouse_over=mouse_help)
+            button = buildutils.Button(self, "round_button", control_type, label, location, mouse_over=mouse_help)
             location.y -= 0.85
 
             self.controls.append(button)
@@ -665,7 +665,7 @@ class DebugBuilderMode(BaseBuilder):
 
             item = self.contents[item_key]
             part = item.part
-            part_type = self.parts_dict[part]['part_type']
+            part_type = self.parts_dict[part]["part_type"]
             color = self.color_dict[part_type]
 
             chassis = self.chassis_dict[self.chassis_size]
@@ -676,7 +676,7 @@ class DebugBuilderMode(BaseBuilder):
 
             for x in range(-1, max_x + 1):
                 for y in range(-1, max_y + 1):
-                    offset = Vector([(x + 0.5) - (max_x * 0.5), y - (max_y * 0.5), 0.0])
+                    offset = mathutils.Vector([(x + 0.5) - (max_x * 0.5), y - (max_y * 0.5), 0.0])
                     offset *= self.tile_scale
 
                     position = origin.copy() + offset
@@ -709,7 +709,7 @@ class DebugBuilderMode(BaseBuilder):
                         tile_object = self.scene.addObject(tile_name, self.own, 0)
                         tile_object.worldPosition = position
                         sub_offset = self.tile_scale * 0.5
-                        tile_object.worldPosition += Vector([sub_offset, sub_offset, 0.0])
+                        tile_object.worldPosition += mathutils.Vector([sub_offset, sub_offset, 0.0])
                         tile_object.color = color
 
                         tile_object.localScale *= self.tile_scale
@@ -721,14 +721,14 @@ class DebugBuilderMode(BaseBuilder):
                                 icon_position.z += 0.05
                                 icon = self.scene.addObject("part_icon_{}".format(part), self.own, 0)
 
-                                x_offset = ((self.parts_dict[part]['x_size'] * 0.5) - 0.5) * self.tile_scale
-                                y_offset = ((self.parts_dict[part]['y_size'] * 0.5) - 0.5) * self.tile_scale
+                                x_offset = ((self.parts_dict[part]["x_size"] * 0.5) - 0.5) * self.tile_scale
+                                y_offset = ((self.parts_dict[part]["y_size"] * 0.5) - 0.5) * self.tile_scale
 
                                 if item.rotated:
-                                    icon_offset = Vector([x_offset, y_offset, 0.0])
+                                    icon_offset = mathutils.Vector([x_offset, y_offset, 0.0])
                                     icon.applyRotation([0.0, 0.0, math.radians(90)])
                                 else:
-                                    icon_offset = Vector([y_offset, x_offset, 0.0])
+                                    icon_offset = mathutils.Vector([y_offset, x_offset, 0.0])
 
                                 icon_position += icon_offset
                                 icon.localScale *= self.tile_scale
@@ -747,12 +747,12 @@ class DebugBuilderMode(BaseBuilder):
         labels = []
 
         for _ in range(28):
-            text_offset = Vector([tx, ty * 0.17, 0.0])
+            text_offset = mathutils.Vector([tx, ty * 0.17, 0.0])
             text_position = text_origin.copy() - text_offset
             text_position.z = 0.1
 
             text = self.scene.addObject("text_object", self.own, 0)
-            text['Text'] = ""
+            text["Text"] = ""
             text.localScale *= 0.15
             text.worldPosition = text_position
             self.vehicle_tiles.append(text)
@@ -770,10 +770,10 @@ class DebugBuilderMode(BaseBuilder):
                 location = items[i]
                 item = self.contents[location]
                 part = item.part
-                part_type = self.parts_dict[part]['part_type']
+                part_type = self.parts_dict[part]["part_type"]
 
                 part_location = item.location
-                name = self.parts_dict[part]['name']
+                name = self.parts_dict[part]["name"]
                 color = self.color_dict[part_type]
 
                 single_labels = ["suspension", "armor", "design"]
@@ -789,7 +789,7 @@ class DebugBuilderMode(BaseBuilder):
 
                     x, y = location
 
-                    offset = Vector([(x + 0.5) - (max_x * 0.5), y - (max_y * 0.5), 0.0])
+                    offset = mathutils.Vector([(x + 0.5) - (max_x * 0.5), y - (max_y * 0.5), 0.0])
                     offset *= self.tile_scale
 
                     position = origin.copy() + offset
@@ -817,7 +817,7 @@ class DebugBuilderMode(BaseBuilder):
                         label_object = label[0]
                         label_position = label[1]
 
-                        label_object['Text'] = display_name
+                        label_object["Text"] = display_name
                         label_object.color = color
                         line = self.scene.addObject("feature_line", self.own, 0)
                         line.color = color
@@ -867,7 +867,7 @@ class DebugBuilderMode(BaseBuilder):
             for x in range(-1, max_x + 1):
                 for y in range(-1, max_y + 1):
 
-                    offset = Vector([(x + 0.5) - (max_x * 0.5), y - (max_y * 0.5), 0.0])
+                    offset = mathutils.Vector([(x + 0.5) - (max_x * 0.5), y - (max_y * 0.5), 0.0])
                     offset *= self.tile_scale
 
                     position = origin.copy() + offset
@@ -887,8 +887,8 @@ class DebugBuilderMode(BaseBuilder):
                         if self.contents.get((x, y)):
                             collision_tile = self.scene.addObject("physical_tile", self.own, 0)
                             collision_tile.worldPosition = position.copy()
-                            collision_tile['contents'] = True
-                            collision_tile['location'] = (x, y)
+                            collision_tile["contents"] = True
+                            collision_tile["location"] = (x, y)
                             collision_tile.localScale *= self.tile_scale
                             self.tiles.append(collision_tile)
 
@@ -898,7 +898,7 @@ class DebugBuilderMode(BaseBuilder):
                         tile_object.worldPosition = position.copy()
                         tile_object.color = [0.5, 0.5, 0.5, 1.0]
                         sub_offset = self.tile_scale * 0.5
-                        tile_object.worldPosition += Vector([sub_offset, sub_offset, 0.0])
+                        tile_object.worldPosition += mathutils.Vector([sub_offset, sub_offset, 0.0])
                         tile_object.localScale *= self.tile_scale
                         self.tiles.append(tile_object)
 
@@ -911,7 +911,7 @@ class DebugBuilderMode(BaseBuilder):
             hit_object = self.mouse_hit_ray("contents")
 
             if hit_object[0]:
-                tile_location = hit_object[0]['location']
+                tile_location = hit_object[0]["location"]
 
         if self.contents.get(tile_location):
             tile_contents = self.contents.get(tile_location)
@@ -935,7 +935,7 @@ class DebugBuilderMode(BaseBuilder):
                     can_add = True
                     containers = []
 
-                    turret_only = selected_part.get('turret_only')
+                    turret_only = selected_part.get("turret_only")
 
                     if turret_only == 1 and not is_turret:
                         can_add = False
@@ -943,11 +943,11 @@ class DebugBuilderMode(BaseBuilder):
                         can_add = False
                     else:
                         if self.rotated:
-                            x_max = selected_part['x_size']
-                            y_max = selected_part['y_size']
+                            x_max = selected_part["x_size"]
+                            y_max = selected_part["y_size"]
                         else:
-                            x_max = selected_part['y_size']
-                            y_max = selected_part['x_size']
+                            x_max = selected_part["y_size"]
+                            y_max = selected_part["x_size"]
 
                         for x in range(x_max):
                             for y in range(y_max):
@@ -1002,13 +1002,13 @@ class DebugBuilderMode(BaseBuilder):
             selected_part_info = self.parts_dict[self.selected_part]
 
             if self.rotated:
-                x_max = selected_part_info['x_size']
-                y_max = selected_part_info['y_size']
+                x_max = selected_part_info["x_size"]
+                y_max = selected_part_info["y_size"]
             else:
-                x_max = selected_part_info['y_size']
-                y_max = selected_part_info['x_size']
+                x_max = selected_part_info["y_size"]
+                y_max = selected_part_info["x_size"]
 
-            tile_type = selected_part_info['part_type']
+            tile_type = selected_part_info["part_type"]
             color = self.color_dict[tile_type]
 
             icon_tiles = {(x, y): 1 for x in range(x_max) for y in range(y_max)}
@@ -1030,7 +1030,7 @@ class DebugBuilderMode(BaseBuilder):
                         tile = self.scene.addObject(tile_name, self.mouse, 0)
                         x_position = (x + 0.5) * scale
                         y_position = (y + 0.5) * scale
-                        tile.worldPosition += Vector([x_position, y_position, -0.05])
+                        tile.worldPosition += mathutils.Vector([x_position, y_position, -0.05])
                         tile.localScale *= scale
                         tile.setParent(self.mouse)
                         tile.color = color
@@ -1042,7 +1042,7 @@ class DebugBuilderMode(BaseBuilder):
         button_hit = self.mouse_hit_ray("button_click")
 
         if button_hit[0]:
-            owner = button_hit[0]['button_owner']
+            owner = button_hit[0]["button_owner"]
             if not owner.clicked:
                 if owner.name == "PART":
                     if self.right_button:
@@ -1211,19 +1211,19 @@ class DebugBuilderMode(BaseBuilder):
                     crit = part.get("critical")
                     flag = part.get("flags")
                     rating = part.get("rating", 0)
-                    part_type = part.get('part_type', 0)
-                    durability = part.get('durability', 0)
+                    part_type = part.get("part_type", 0)
+                    durability = part.get("durability", 0)
                     level = part.get("level", 0)
 
-                    weight = part.get('weight', 0)
+                    weight = part.get("weight", 0)
                     cost += (5 + level) * 100
-                    section_stats['durability'] += durability
+                    section_stats["durability"] += durability
 
                     for c in range(max(1, int(weight))):
                         section_dict[location]["crits"].append(crit)
 
                     if part_type != "weapon":
-                        flags = add_entry(flag, flags)
+                        flags = bgeutils.add_entry(flag, flags)
 
                     if part_type == "design":
                         drive_types = ["WHEELED", "HALFTRACK", "TRACKED"]
@@ -1238,27 +1238,27 @@ class DebugBuilderMode(BaseBuilder):
 
                     elif part_type == "armor":
                         if location == "TURRET":
-                            armor_scale = turret['armor_scale']
+                            armor_scale = turret["armor_scale"]
                         else:
-                            armor_scale = chassis['armor_scale']
+                            armor_scale = chassis["armor_scale"]
 
-                        if section_stats['rating'] < 1:
-                            section_stats['rating'] += rating
+                        if section_stats["rating"] < 1:
+                            section_stats["rating"] += rating
                         else:
-                            section_stats['rating'] += rating * 0.5
+                            section_stats["rating"] += rating * 0.5
 
                         weight *= armor_scale
 
                         tons += weight
                         max_thickness = 20
 
-                        if section_stats['max'] > max_thickness:
-                            section_stats['max'] = max_thickness
+                        if section_stats["max"] > max_thickness:
+                            section_stats["max"] = max_thickness
 
                         spalling = ["CAST", "RIVETED", "THIN"]
 
                         if flag in spalling:
-                            flags = add_entry("SPALLING", flags)
+                            flags = bgeutils.add_entry("SPALLING", flags)
 
                     else:
                         tons += weight
@@ -1308,29 +1308,29 @@ class DebugBuilderMode(BaseBuilder):
 
                 # retain for level 6 tech
                 # if "COMPACT" in flags:
-                #     armor_section['rating'] = round(armor_section['rating'] * 1.5)
+                #     armor_section["rating"] = round(armor_section["rating"] * 1.5)
                 # else:
-                #     armor_section['rating'] = round(armor_section['rating'])
+                #     armor_section["rating"] = round(armor_section["rating"])
 
-                if armor_section['rating'] > armor_section['max']:
-                    armor_section['rating'] = armor_section['max']
+                if armor_section["rating"] > armor_section["max"]:
+                    armor_section["rating"] = armor_section["max"]
                 else:
-                    armor_section['rating'] = int(armor_section['rating'])
+                    armor_section["rating"] = int(armor_section["rating"])
 
-                if armor_section['rating'] > 0.0:
+                if armor_section["rating"] > 0.0:
                     armor_coverage = True
 
                 section_dict[armor_key] = armor_section
 
-            if armor_coverage or "ARMORED CHASSIS" in flags:
-                self.vehicle_stats['armored'] = True
+            if armor_coverage or "ARMORED_CHASSIS" in flags:
+                self.vehicle_stats["armored"] = True
             else:
-                self.vehicle_stats['armored'] = False
+                self.vehicle_stats["armored"] = False
 
-            if "OPEN TOP" in flags:
+            if "OPEN_TOP" in flags:
                 open_top = True
 
-            if "OPEN TURRET" in flags:
+            if "OPEN_TURRET" in flags:
                 open_turret = True
 
         engine_handling = sorted(engine_handling).reverse()
@@ -1339,62 +1339,62 @@ class DebugBuilderMode(BaseBuilder):
         else:
             engine_handling = 0
 
-        self.vehicle_stats['faction number'] = self.manager.faction
-        self.vehicle_stats['faction name'] = self.faction_label
-        self.vehicle_stats['chassis size'] = self.chassis_size
-        self.vehicle_stats['turret size'] = self.turret_size
-        self.vehicle_stats['sections'] = section_dict
-        self.vehicle_stats['weapons'] = weapons_dict
-        self.vehicle_stats['flags'] = flags
+        self.vehicle_stats["faction_number"] = self.manager.faction
+        self.vehicle_stats["faction_name"] = self.faction_label
+        self.vehicle_stats["chassis_size"] = self.chassis_size
+        self.vehicle_stats["turret_size"] = self.turret_size
+        self.vehicle_stats["sections"] = section_dict
+        self.vehicle_stats["weapons"] = weapons_dict
+        self.vehicle_stats["flags"] = flags
         self.vehicle_stats["cost"] = cost
-        self.vehicle_stats["suspension rating"] = suspension
+        self.vehicle_stats["suspension_rating"] = suspension
         self.vehicle_stats["suspension"] = suspension_type
         self.vehicle_stats["drive"] = drive_type
-        self.vehicle_stats["suspension type"] = "{} {}".format(drive_type, suspension_type)
-        self.vehicle_stats["engine rating"] = engine_rating
+        self.vehicle_stats["suspension_type"] = "{}_{}".format(drive_type, suspension_type)
+        self.vehicle_stats["engine_rating"] = engine_rating
         self.vehicle_stats["fuel"] = fuel
         self.vehicle_stats["ammo"] = ammo
         self.vehicle_stats["stores"] = stores
         self.vehicle_stats["tons"] = max(1, tons)
-        self.vehicle_stats["total crew"] = sum([section_dict[location]["crew"] for location in section_dict])
-        self.vehicle_stats['armor scale'] = sum([section_dict[section]['rating'] for section in section_dict]) / \
+        self.vehicle_stats["total_crew"] = sum([section_dict[location]["crew"] for location in section_dict])
+        self.vehicle_stats["armor_scale"] = sum([section_dict[section]["rating"] for section in section_dict]) / \
                                             self.vehicle_stats["tons"]
-        self.vehicle_stats['open top'] = open_top
-        self.vehicle_stats['open turret'] = open_turret
+        self.vehicle_stats["open_top"] = open_top
+        self.vehicle_stats["open_turret"] = open_turret
 
-        power_to_weight = round((self.vehicle_stats["engine rating"] * 50) / self.vehicle_stats["tons"], 1)
+        power_to_weight = round((self.vehicle_stats["engine_rating"] * 50) / self.vehicle_stats["tons"], 1)
         drive_mods = self.drive_dict[drive_type]
         suspension_mods = self.suspension_dict[suspension_type]
 
-        self.vehicle_stats["stability"] = suspension_mods['stability'] + drive_mods['stability']
-        self.vehicle_stats["on road handling"] = suspension_mods['handling'][0] + drive_mods['handling'][0] + engine_handling
-        self.vehicle_stats["off road handling"] = suspension_mods['handling'][1] + drive_mods['handling'][1] + engine_handling
+        self.vehicle_stats["stability"] = suspension_mods["stability"] + drive_mods["stability"]
+        self.vehicle_stats["on_road_handling"] = suspension_mods["handling"][0] + drive_mods["handling"][0] + engine_handling
+        self.vehicle_stats["off_road_handling"] = suspension_mods["handling"][1] + drive_mods["handling"][1] + engine_handling
 
         tonnage_mod = int(self.vehicle_stats["tons"] * 0.1)
-        self.vehicle_stats["on road handling"] -= tonnage_mod
-        self.vehicle_stats["off road handling"] -= tonnage_mod
+        self.vehicle_stats["on_road_handling"] -= tonnage_mod
+        self.vehicle_stats["off_road_handling"] -= tonnage_mod
 
-        on_road = min(99, (power_to_weight * suspension_mods['on road']) * drive_mods['on road'])
-        off_road = min(50, (power_to_weight * suspension_mods['off road']) * drive_mods['off road'])
+        on_road = min(99, (power_to_weight * suspension_mods["on_road"]) * drive_mods["on_road"])
+        off_road = min(50, (power_to_weight * suspension_mods["off_road"]) * drive_mods["off_road"])
 
-        self.vehicle_stats['on road'] = int(on_road)
-        self.vehicle_stats['off road'] = int(off_road)
+        self.vehicle_stats["on_road"] = int(on_road)
+        self.vehicle_stats["off_road"] = int(off_road)
 
-        if self.vehicle_stats["suspension rating"] < self.vehicle_stats["tons"]:
-            if self.vehicle_stats["suspension rating"] <= 0:
+        if self.vehicle_stats["suspension_rating"] < self.vehicle_stats["tons"]:
+            if self.vehicle_stats["suspension_rating"] <= 0:
                 weight_scale = 0.0
             else:
-                weight_scale = self.vehicle_stats["suspension rating"] / self.vehicle_stats["tons"]
+                weight_scale = self.vehicle_stats["suspension_rating"] / self.vehicle_stats["tons"]
 
-            self.vehicle_stats['on road'] = int(on_road * weight_scale)
-            self.vehicle_stats['off road'] = int(off_road * weight_scale)
-            self.vehicle_stats["on road handling"] = int(self.vehicle_stats["on road handling"] * weight_scale)
-            self.vehicle_stats["off road handling"] = int(self.vehicle_stats["off road handling"] * weight_scale)
+            self.vehicle_stats["on_road"] = int(on_road * weight_scale)
+            self.vehicle_stats["off_road"] = int(off_road * weight_scale)
+            self.vehicle_stats["on_road_handling"] = int(self.vehicle_stats["on_road_handling"] * weight_scale)
+            self.vehicle_stats["off_road_handling"] = int(self.vehicle_stats["off_road_handling"] * weight_scale)
 
-        self.vehicle_stats["on road handling"] = max(1, self.vehicle_stats["on road handling"])
-        self.vehicle_stats["off road handling"] = max(1, self.vehicle_stats["off road handling"])
+        self.vehicle_stats["on_road_handling"] = max(1, self.vehicle_stats["on_road_handling"])
+        self.vehicle_stats["off_road_handling"] = max(1, self.vehicle_stats["off_road_handling"])
 
-        stat_1_categories = ["tons", "cost", "stability", "total crew", "suspension type", "suspension rating", "engine rating"]
+        stat_1_categories = ["tons", "cost", "stability", "total_crew", "suspension_type", "suspension_rating", "engine_rating"]
         stat_1_string = ""
 
         for category in stat_1_categories:
@@ -1404,12 +1404,12 @@ class DebugBuilderMode(BaseBuilder):
             except:
                 entry = entry
 
-            if category == "suspension type":
+            if category == "suspension_type":
                 stat_1_string = "{}{:<18}\n{:>21}\n".format(stat_1_string, category + ":", str(entry))
             else:
                 stat_1_string = "{}{:<18}{:>3}\n".format(stat_1_string, category + ":", str(entry))
 
-        stat_2_categories = ["on road handling", "off road handling", "on road", "off road", "fuel", "stores"]
+        stat_2_categories = ["on_road_handling", "off_road_handling", "on_road", "off_road", "fuel", "stores"]
         stat_2_string = ""
 
         for category in stat_2_categories:
@@ -1428,13 +1428,13 @@ class DebugBuilderMode(BaseBuilder):
         else:
             locations = ["FRONT", "FLANKS"]
 
-        armor_string = "{:>21}".format("CP - HP - AP:")
+        armor_string = "{:>21}".format("CP_-_HP_-_AP:")
         crit_string = ""
 
         for location in locations:
-            current_section = self.vehicle_stats['sections'][location]
+            current_section = self.vehicle_stats["sections"][location]
 
-            if self.vehicle_stats['armored']:
+            if self.vehicle_stats["armored"]:
                 armor_rating = str(int(current_section["rating"])).zfill(2)
             else:
                 armor_rating = "-"
@@ -1451,30 +1451,31 @@ class DebugBuilderMode(BaseBuilder):
             armor_string = "{}\n{}".format(armor_string, hp_string)
 
             added_crits = []
-            for crit_entry in self.vehicle_stats['sections'][location]['crits']:
+            for crit_entry in self.vehicle_stats["sections"][location]["crits"]:
                 if crit_entry[:1] not in added_crits and crit_entry != "CHASSIS":
                     added_crits.append(crit_entry[:1])
 
             crits = "/".join(added_crits)
-            crit_string = "{}\n{}{}".format(crit_string, location + " CRITS: ", crits)
+            crit_string = "{}\n{}{}".format(crit_string, location + "_CRITS:_", crits)
 
-        label = "".join([stat_1_string, stat_2_string, armor_string, crit_string])
-        help_lines = ["Vehicle statistics:", "Suspension rating should exceed tonnage.",
-                      "Each engine or armor section above 1 adds", "only 50 percent to rating.",
-                      "CP= Crew points, affects reload speed",
-                      "HP= Durability", "AP= Armor points",
-                      "CRITICAL LOCATIONS=",
-                      "D= drive, W= weapon, C= crew, E= engine",
-                      "Crew type sections weigh 50 percent.",
-                      "Armor sections weigh more or less depending",
-                      "on the chassis and turret size."]
+        label = bgeutils.add_spaces("".join([stat_1_string, stat_2_string, armor_string, crit_string]))
+        help_lines = ["Vehicle_statistics:", "Suspension_rating_should_exceed_tonnage.",
+                      "Each_engine_or_armor_section_above_1_adds", "only_50_percent_to_rating.",
+                      "CP=_Crew_points,_affects_reload_speed",
+                      "HP=_Durability", "AP=_Armor_points",
+                      "CRITICAL_LOCATIONS=",
+                      "D=_drive,_W=_weapon,_C=_crew,_E=_engine",
+                      "Crew_type_sections_weigh_50_percent.",
+                      "Armor_sections_weigh_more_or_less_depending",
+                      "on_the_chassis_and_turret_size."]
 
-        mouse_help = "\n".join(help_lines)
+
+        mouse_help = bgeutils.add_spaces("\n".join(help_lines))
 
         location = self.info_text.worldPosition.copy()
 
-        button = Button(self, "large_text_box", "stat", label, location, mouse_over=mouse_help, text_box=True,
-                        scale=1.0)
+        button = buildutils.Button(self, "large_text_box", "stat", label, location, mouse_over=mouse_help, text_box=True,
+                                   scale=1.0)
         self.info_buttons.append(button)
 
     def regenerate_chassis(self):
@@ -1516,14 +1517,14 @@ class DebugBuilderMode(BaseBuilder):
                     else:
                         weapon_location = "LEFT"
 
-                self.contents[chassis_key] = Tile(x, y, location, weapon_location)
+                self.contents[chassis_key] = buildutils.Tile(x, y, location, weapon_location)
 
         turret_padding_x = int((chassis["x"] - (turret["x"])) * 0.5)
         turret_padding_y = int(chassis["y"]) + 1
 
         for x in range(turret_padding_x, turret_padding_x + turret["x"]):
             for y in range(turret_padding_y, turret_padding_y + turret["y"]):
-                self.contents[(x, y)] = Tile(x, y, "TURRET", "TURRET")
+                self.contents[(x, y)] = buildutils.Tile(x, y, "TURRET", "TURRET")
 
     def mouse_pointer(self):
         mouse_hit = self.mouse_hit_ray("background")
@@ -1533,16 +1534,16 @@ class DebugBuilderMode(BaseBuilder):
         help_text = ""
 
         if button_hit[0]:
-            owner = button_hit[0]['button_owner']
+            owner = button_hit[0]["button_owner"]
             if owner.name == "PART":
                 part = self.parts_dict[owner.part_key]
                 help_text = self.part_description(part)
 
             if button_hit[0].get("mouse_over"):
-                help_text = button_hit[0]['mouse_over']
+                help_text = button_hit[0]["mouse_over"]
 
         elif contents_hit[0]:
-            location_key = contents_hit[0]['location']
+            location_key = contents_hit[0]["location"]
             contents = self.contents.get(location_key)
 
             if contents:
@@ -1552,17 +1553,19 @@ class DebugBuilderMode(BaseBuilder):
                     part = self.parts_dict[part_key]
                     help_text = "{}\n{}\n{}".format(help_text, part["name"].upper(), self.part_description(part))
                 elif contents.location == "BLOCKED":
-                    help_text = "Occupied by turret."
+                    help_text = "Occupied_by_turret."
                 else:
 
                     if contents.location != contents.weapon_location:
-                        help_text = "vehicle {}({}).".format(contents.location.lower(),
+                        help_text = "vehicle_{}({}).".format(contents.location.lower(),
                                                              contents.weapon_location).upper()
                     else:
-                        help_text = "vehicle {}.".format(contents.location.lower()).upper()
+                        help_text = "vehicle_{}.".format(contents.location.lower()).upper()
 
         if help_text:
-            self.mouse_text['Text'] = help_text
+            help_text = bgeutils.add_spaces(help_text)
+
+            self.mouse_text["Text"] = help_text
             longest = sorted(help_text.split("\n"), key=len, reverse=True)[0]
 
             x_length = len(longest) * 0.14
@@ -1570,7 +1573,7 @@ class DebugBuilderMode(BaseBuilder):
             self.mouse_text_shadow.localScale = [x_length, y_length, 0.0]
 
         else:
-            self.mouse_text['Text'] = ""
+            self.mouse_text["Text"] = ""
             self.mouse_text_shadow.localScale = [0.0, 0.0, 0.0]
 
         if mouse_hit[0]:
