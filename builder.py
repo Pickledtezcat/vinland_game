@@ -1182,6 +1182,8 @@ class DebugBuilderMode(BaseBuilder):
         engine_handling = []
         open_top = False
         open_turret = False
+        vision_distance = 1
+        turret_speed = 0.0
 
         section_dict = dict(
             TURRET={"rating": 0.0, "max": 100, "durability": 0, "crits": [], "manpower": 0,
@@ -1195,7 +1197,6 @@ class DebugBuilderMode(BaseBuilder):
         sorted_keys = sorted(tank_parts, key=lambda my_key: tank_parts[my_key].get("rating", 0))
 
         sections = ["FRONT", "FLANKS", "TURRET"]
-
         armor_coverage = False
 
         for section in sections:
@@ -1327,11 +1328,43 @@ class DebugBuilderMode(BaseBuilder):
             else:
                 self.vehicle_stats["armored"] = False
 
-            if "OPEN_TOP" in flags:
-                open_top = True
+        good_vision = False
+        great_vision = False
 
-            if "OPEN_TURRET" in flags:
-                open_turret = True
+        if "OPEN_TOP" in flags:
+            good_vision = True
+            open_top = True
+
+        if "OPEN_TURRET" in flags:
+            great_vision = True
+            open_turret = True
+
+        if self.turret_size > 0:
+            good_vision = True
+
+        if "COMMANDER" in flags:
+            if self.turret_size > 0:
+                great_vision = True
+            else:
+                good_vision = True
+
+        if "COMMANDERS_CUPOLA" in flags:
+            if self.turret_size > 0:
+                great_vision = True
+            else:
+                good_vision = True
+
+        if not self.vehicle_stats["armored"]:
+            vision_distance += 1
+
+        if great_vision:
+            vision_distance += 2
+
+        elif good_vision:
+            vision_distance += 1
+
+        if "NIGHT_VISION_CUPOLA" in flags:
+            vision_distance += 1
 
         engine_handling = sorted(engine_handling).reverse()
         if engine_handling:
@@ -1361,6 +1394,7 @@ class DebugBuilderMode(BaseBuilder):
                                             self.vehicle_stats["tons"]
         self.vehicle_stats["open_top"] = open_top
         self.vehicle_stats["open_turret"] = open_turret
+        self.vehicle_stats["vision_distance"] = vision_distance
 
         power_to_weight = round((self.vehicle_stats["engine_rating"] * 50) / self.vehicle_stats["tons"], 1)
         drive_mods = self.drive_dict[drive_type]
@@ -1409,7 +1443,7 @@ class DebugBuilderMode(BaseBuilder):
             else:
                 stat_1_string = "{}{:<18}{:>3}\n".format(stat_1_string, category + ":", str(entry))
 
-        stat_2_categories = ["on_road_handling", "off_road_handling", "on_road", "off_road", "fuel", "stores"]
+        stat_2_categories = ["on_road_handling", "off_road_handling", "on_road", "off_road", "fuel", "stores", "vision_distance"]
         stat_2_string = ""
 
         for category in stat_2_categories:

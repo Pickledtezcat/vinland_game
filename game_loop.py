@@ -195,7 +195,7 @@ class GameLoop(object):
         self.waypoints = bgeutils.Waypoints(self)
 
         for i in range(2):
-            agents.VehicleAgent(self, (103, 112 + (i * 10)), "old tank", 0)
+            agents.VehicleAgent(self, (103, 112 + (i * 10)), "primitive-tank", 0)
 
         #agents.VehicleAgent(self, (80, 130), "old tank", 1)
 

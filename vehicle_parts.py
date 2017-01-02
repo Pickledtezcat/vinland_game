@@ -307,12 +307,12 @@ drive_dict = {'WHEELED': {'on_road': 1.3, 'off_road': 0.5, 'stability': 0, 'hand
               'HALFTRACK': {'on_road': 1.15, 'off_road': 0.8, 'stability': 1, 'handling': [4, 2]},
               'TRACKED': {'on_road': 1.0, 'off_road': 1.0, 'stability': 1, 'handling': [3, 3]}}
 
-suspension_dict = {'LEAF SPRING': {'on_road': 2.8, 'off_road': 1.9, 'stability': 2, 'handling': [2, 2]},
-                   'COIL SPRING': {'on_road': 2.0, 'off_road': 2.0, 'stability': 2, 'handling': [1, 4]},
-                   'CONICAL SPRING': {'on_road': 2.5, 'off_road': 2.0, 'stability': 2, 'handling': [3, 5]},
-                   'BELL CRANK': {'on_road': 2.7, 'off_road': 2.0, 'stability': 1, 'handling': [2, 3]},
-                   'TORSION BAR': {'on_road': 3.0, 'off_road': 2.1, 'stability': 3, 'handling': [3, 2]},
-                   'HYDRAULIC': {'on_road': 3.0, 'off_road': 2.2, 'stability': 4, 'handling': [3, 4]},
+suspension_dict = {'LEAF_SPRING': {'on_road': 2.8, 'off_road': 1.9, 'stability': 2, 'handling': [2, 2]},
+                   'COIL_SPRING': {'on_road': 2.0, 'off_road': 2.0, 'stability': 2, 'handling': [4, 4]},
+                   'CONICAL_SPRING': {'on_road': 2.5, 'off_road': 2.0, 'stability': 2, 'handling': [4, 5]},
+                   'BELL_CRANK': {'on_road': 2.7, 'off_road': 2.0, 'stability': 1, 'handling': [3, 3]},
+                   'TORSION_BAR': {'on_road': 3.0, 'off_road': 2.2, 'stability': 3, 'handling': [3, 2]},
+                   'HYDRAULIC': {'on_road': 3.0, 'off_road': 2.2, 'stability': 4, 'handling': [4, 4]},
                    'PNEUMATIC': {'on_road': 3.0, 'off_road': 2.1, 'stability': 4, 'handling': [4, 3]},
                    'UNSPRUNG': {'on_road': 0.8, 'off_road': 0.56, 'stability': 0, 'handling': [0, 0]}}
 
