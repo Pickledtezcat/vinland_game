@@ -107,7 +107,7 @@ class MovementPointIcon(Particle):
         self.invalid_location = False
 
         for axis in position:
-            if axis < 0.0 or axis > self.manager.level_size * 4:
+            if axis < 0.0 or axis > self.manager.level_size * 8:
                 self.invalid_location = True
 
         if self.invalid_location:
