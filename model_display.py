@@ -83,9 +83,9 @@ class VehicleModel(object):
         self.vehicle = self.scene.addObject(chassis_string, self.adder, 0)
         self.vehicle.setParent(self.adder)
 
-        tracks = bgeutils.get_ob_list("tracks", self.vehicle.children)
-        if tracks:
-            for track in tracks:
+        self.tracks = bgeutils.get_ob_list("tracks", self.vehicle.children)
+        if self.tracks:
+            for track in self.tracks:
                 mesh = track.meshes[0]
 
                 bgeutils.bge.logic.globalDict["lib"] = bgeutils.bge.logic.globalDict.get("lib", 0)
@@ -94,6 +94,8 @@ class VehicleModel(object):
                 new_mesh = bgeutils.bge.logic.LibNew(new_name, "Mesh", [mesh.name])
                 bgeutils.bge.logic.globalDict["lib"] += 1
                 track.replaceMesh(new_mesh[0])
+
+        self.wheels = bgeutils.get_ob_list("wheels", self.vehicle.children)
 
         self.turret = None
 
@@ -316,7 +318,6 @@ class VehicleModel(object):
 
         self.gun_adders[adder_string] = adder_list
 
-
     def end_vehicle(self):
         self.vehicle.endObject()
 
@@ -343,10 +344,148 @@ class VehicleModel(object):
             if self.turret:
                 self.turret.applyRotation([0.0, 0.0, 0.001], 1)
 
-            for ob in self.vehicle.children:
-                if ob.get("wheels"):
-                    ob.applyRotation([-0.05, 0.0, 0.0], 1)
-                if ob.get("tracks"):
-                    mesh = ob.meshes[0]
-                    transform = bgeutils.Matrix.Translation((0.001, 0.0, 0.0))
-                    mesh.transformUV(0, transform)
+            for ob in self.wheels:
+                ob.applyRotation([-0.05, 0.0, 0.0], 1)
+
+            for ob in self.tracks:
+                mesh = ob.meshes[0]
+                transform = bgeutils.Matrix.Translation((0.001, 0.0, 0.0))
+                mesh.transformUV(0, transform)
+
+
+class ArtilleryModel(object):
+    def __init__(self, adder, stats, scale=1.0, cammo=0):
+
+        self.adder = adder
+        self.scene = self.adder.scene
+        self.stats = stats
+        self.scale = scale
+        self.parts_dict = vehicle_parts.get_vehicle_parts()
+
+        faction_icons = {1: 0,
+                         2: 2,
+                         3: 1,
+                         4: 3,
+                         5: 5,
+                         6: 4}
+
+        icon = faction_icons[self.stats["faction_number"]]
+
+        color = [icon * 0.25, 0.0, cammo * 0.125, 1.0]
+
+        all_weapons = self.stats["weapons"]["FRONT"]
+
+        model = "heavy_machine_gun"
+
+        if all_weapons:
+            weapon = all_weapons[0]
+            flags = self.stats['flags']
+            weapon_rating = weapon['rating']
+
+            if "AA_MOUNT" in flags:
+                if weapon_rating > 9:
+                    model = "heavy_aa"
+                elif weapon_rating > 3:
+                    model = "medium_aa"
+                else:
+                    model = "light_aa"
+
+            elif "ROCKET_MOUNT" in flags:
+
+                weapons = self.stats["weapons"]["FRONT"]
+                total_rating = 0
+                for w in weapons:
+                    total_rating += w['rating']
+
+                if total_rating > 25:
+                    model = "heavy_rocket_launcher"
+                elif total_rating > 15:
+                    model = "medium_rocket_launcher"
+                else:
+                    model = "light_rocket_launcher"
+
+            else:
+                artillery = ["LOW_VELOCITY", "NO_SIGHTS"]
+
+                if weapon['flags'] == "MORTAR":
+                    if weapon_rating < 10:
+                        model = "light_mortar"
+                    else:
+                        model = "heavy_mortar"
+                elif weapon['flags'] in artillery:
+                    if weapon_rating > 14:
+                        model = "heavy_artillery"
+                    elif weapon_rating > 9:
+                        model = "medium_artillery"
+                    else:
+                        model = "light_artillery"
+
+                else:
+                    if weapon_rating > 9:
+                        model = "heavy_anti_tank_gun"
+                    elif weapon_rating > 5:
+                        model = "medium_anti_tank_gun"
+                    elif weapon_rating > 1:
+                        model = "light_anti_tank_gun"
+
+        self.vehicle = self.scene.addObject(model, self.adder, 0)
+        self.vehicle.setParent(self.adder)
+
+        legs = bgeutils.get_ob_list("leg", self.vehicle.children)
+        self.legs = []
+
+        for ob in legs:
+            if ob.children:
+                end = ob.children[0]
+                leg_set = {'leg': ob, 'start': ob.localTransform, "end": end.localTransform, "timer": 0.0}
+                end.endObject()
+                self.legs.append(leg_set)
+
+        self.wheels = bgeutils.get_ob_list("wheels", self.vehicle.children)
+        self.turret = bgeutils.get_ob("gun", self.vehicle.children)
+        self.tracks = []
+
+        self.vehicle.color = color
+        for ob in self.vehicle.childrenRecursive:
+            ob.color = color
+
+        self.vehicle.localScale *= scale
+
+    def end_vehicle(self):
+        self.vehicle.endObject()
+
+    def movement_action(self, speed):
+
+        for ob in self.vehicle.children:
+            if ob.get("wheels"):
+                ob.applyRotation([-speed, 0.0, 0.0], 1)
+            if ob.get("tracks"):
+                mesh = ob.meshes[0]
+                transform = bgeutils.Matrix.Translation((speed * 0.01, 0.0, 0.0))
+                mesh.transformUV(0, transform)
+
+    def preview_update(self, rotation):
+
+        if self.vehicle:
+
+            initial_transform = self.adder.worldTransform
+            mat_rotation = bgeutils.Matrix.Rotation(bgeutils.math.radians(360.0 * rotation), 4, "Z")
+
+            self.vehicle.worldTransform = initial_transform * mat_rotation
+            self.vehicle.localScale = [self.scale, self.scale, self.scale]
+
+            if self.turret:
+                pass
+                # self.turret.applyRotation([0.0, 0.0, 0.001], 1)
+
+            for ob in self.wheels:
+                ob.applyRotation([-0.05, 0.0, 0.0], 1)
+
+            for ob in self.tracks:
+                mesh = ob.meshes[0]
+                transform = bgeutils.Matrix.Translation((0.001, 0.0, 0.0))
+                mesh.transformUV(0, transform)
+
+            for leg in self.legs:
+                leg['leg'].localTransform = leg['end']
+

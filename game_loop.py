@@ -194,17 +194,17 @@ class GameLoop(object):
         self.LOS_manager.do_paint()
         self.waypoints = bgeutils.Waypoints(self)
 
-        for i in range(2):
-            agents.VehicleAgent(self, (103, 112 + (i * 10)), "primitive-tank", 0)
+        #for i in range(2):
+        #    agents.VehicleAgent(self, (103, 112 + (i * 10)), "primitive-tank", 0)
 
         #agents.VehicleAgent(self, (80, 130), "old tank", 1)
 
         squads = ["mg", "squad", "officer", "scout", "squad", "anti-tank"]
 
-        for i in range(6):
+        for i in range(5):
             agents.InfantrySquad(self, (150, 90 + (i * 10)), squads[i], 0)
 
-        agents.InfantrySquad(self, (180, 90), "squad", 1)
+        #agents.InfantrySquad(self, (180, 90), "squad", 1)
 
         agents.TestHouse(self, (105, 88))
         agents.TestHouse(self, (156, 66))

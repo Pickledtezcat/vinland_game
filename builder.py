@@ -830,7 +830,14 @@ class DebugBuilderMode(BaseBuilder):
                         self.vehicle_tiles.append(line)
 
         if self.vehicle_stats:
-            self.vehicle_display = model_display.VehicleModel(self.model_display, self.vehicle_stats, scale=0.30,
+
+            if "GUN_CARRIAGE" in self.vehicle_stats['flags']:
+                self.vehicle_display = model_display.ArtilleryModel(self.model_display, self.vehicle_stats, scale=0.30,
+                                                                  cammo=self.cammo)
+
+            else:
+
+                self.vehicle_display = model_display.VehicleModel(self.model_display, self.vehicle_stats, scale=0.30,
                                                               cammo=self.cammo)
 
     def clean_tiles(self):
