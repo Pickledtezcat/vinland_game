@@ -323,13 +323,13 @@ class VehicleModel(object):
 
     def movement_action(self, speed):
 
-        for ob in self.vehicle.children:
-            if ob.get("wheels"):
-                ob.applyRotation([-speed, 0.0, 0.0], 1)
-            if ob.get("tracks"):
-                mesh = ob.meshes[0]
-                transform = bgeutils.Matrix.Translation((speed * 0.01, 0.0, 0.0))
-                mesh.transformUV(0, transform)
+        for wheel in self.wheels:
+            wheel.applyRotation([-speed, 0.0, 0.0], 1)
+
+        for track in self.tracks:
+            mesh = track.meshes[0]
+            transform = bgeutils.Matrix.Translation((speed * 0.01, 0.0, 0.0))
+            mesh.transformUV(0, transform)
 
     def preview_update(self, rotation):
 
@@ -362,6 +362,9 @@ class ArtilleryModel(object):
         self.scale = scale
         self.parts_dict = vehicle_parts.get_vehicle_parts()
 
+        self.display_cycle = 0.0
+        self.cycling = False
+
         faction_icons = {1: 0,
                          2: 2,
                          3: 1,
@@ -375,7 +378,7 @@ class ArtilleryModel(object):
 
         all_weapons = self.stats["weapons"]["FRONT"]
 
-        model = "heavy_machine_gun"
+        model = "light_machine_gun"
 
         if all_weapons:
             weapon = all_weapons[0]
@@ -425,24 +428,45 @@ class ArtilleryModel(object):
                         model = "heavy_anti_tank_gun"
                     elif weapon_rating > 5:
                         model = "medium_anti_tank_gun"
-                    elif weapon_rating > 1:
+                    elif weapon_rating > 2:
                         model = "light_anti_tank_gun"
+                    # else:
+                    #     model = "heavy_machine_gun"
 
         self.vehicle = self.scene.addObject(model, self.adder, 0)
+        self.vehicle.worldPosition.z += 0.2
         self.vehicle.setParent(self.adder)
+
+        crew_adders = bgeutils.get_ob_list("crew", self.vehicle.children)
+
+        for crew_adder in crew_adders:
+            crew_man = crew_adder.scene.addObject("artillery_crewman", crew_adder, 0)
+            crew_man.setParent(crew_adder)
 
         legs = bgeutils.get_ob_list("leg", self.vehicle.children)
         self.legs = []
 
-        for ob in legs:
-            if ob.children:
-                end = ob.children[0]
-                leg_set = {'leg': ob, 'start': ob.localTransform, "end": end.localTransform, "timer": 0.0}
-                end.endObject()
-                self.legs.append(leg_set)
+        for leg in legs:
+            if leg.children != []:
+                end = bgeutils.get_ob("deployed_position", leg.children)
+                if end:
+                    leg_set = {'leg': leg, 'start': leg.localTransform, "end": end.localTransform}
+                    end.endObject()
+                    self.legs.append(leg_set)
+
+        self.gun = None
+        gun = bgeutils.get_ob("gun", self.vehicle.children)
+
+        if gun:
+            if gun.children:
+                end = bgeutils.get_ob("deployed_position", gun.children)
+                if end:
+                    gun_set = {'gun': gun, 'start': gun.localTransform, "end": end.localTransform}
+                    end.endObject()
+                    self.gun = gun_set
 
         self.wheels = bgeutils.get_ob_list("wheels", self.vehicle.children)
-        self.turret = bgeutils.get_ob("gun", self.vehicle.children)
+        self.turret = bgeutils.get_ob("turret", self.vehicle.children)
         self.tracks = []
 
         self.vehicle.color = color
@@ -456,17 +480,28 @@ class ArtilleryModel(object):
 
     def movement_action(self, speed):
 
-        for ob in self.vehicle.children:
-            if ob.get("wheels"):
-                ob.applyRotation([-speed, 0.0, 0.0], 1)
-            if ob.get("tracks"):
-                mesh = ob.meshes[0]
-                transform = bgeutils.Matrix.Translation((speed * 0.01, 0.0, 0.0))
-                mesh.transformUV(0, transform)
+        for wheel in self.wheels:
+            wheel.applyRotation([-speed, 0.0, 0.0], 1)
+
+        for track in self.tracks:
+            mesh = track.meshes[0]
+            transform = bgeutils.Matrix.Translation((speed * 0.01, 0.0, 0.0))
+            mesh.transformUV(0, transform)
 
     def preview_update(self, rotation):
 
         if self.vehicle:
+
+            if self.cycling:
+                if self.display_cycle < 1.0:
+                    self.display_cycle += 0.01
+                else:
+                    self.cycling = False
+            else:
+                if self.display_cycle > 0.0:
+                    self.display_cycle -= 0.01
+                else:
+                    self.cycling = True
 
             initial_transform = self.adder.worldTransform
             mat_rotation = bgeutils.Matrix.Rotation(bgeutils.math.radians(360.0 * rotation), 4, "Z")
@@ -475,8 +510,7 @@ class ArtilleryModel(object):
             self.vehicle.localScale = [self.scale, self.scale, self.scale]
 
             if self.turret:
-                pass
-                # self.turret.applyRotation([0.0, 0.0, 0.001], 1)
+                self.turret.applyRotation([0.0, 0.0, 0.001], 1)
 
             for ob in self.wheels:
                 ob.applyRotation([-0.05, 0.0, 0.0], 1)
@@ -487,5 +521,8 @@ class ArtilleryModel(object):
                 mesh.transformUV(0, transform)
 
             for leg in self.legs:
-                leg['leg'].localTransform = leg['end']
+                leg['leg'].localTransform = leg['start'].lerp(leg['end'], bgeutils.smoothstep(self.display_cycle))
+
+            if self.gun:
+                self.gun['gun'].localTransform = self.gun['start'].lerp(self.gun['end'], bgeutils.smoothstep(self.display_cycle))
 

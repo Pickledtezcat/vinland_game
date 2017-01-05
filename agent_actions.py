@@ -150,8 +150,29 @@ class AgentAnimation(object):
                 self.agent.hull.alignAxisToVect(local_y, 1, 1.0)
                 self.agent.hull.alignAxisToVect(target_vector, 2, 1.0)
 
+            if self.agent.agent_type == "ARTILLERY":
+                self.deploy()
         else:
             self.agent.screen_position = None
+
+    def deploy(self):
+        deploy_amount = self.agent.deployed
+
+        for leg in self.agent.display_object.legs:
+            leg_model = leg['leg']
+            start = leg['start']
+            end = leg['end']
+            leg_model.localTransform = start.lerp(end, deploy_amount)
+
+        gun = self.agent.display_object.gun
+
+        if gun:
+            gun_model = gun['gun']
+            start = gun['start']
+            end = gun['end']
+            gun_model.localTransform = start.lerp(end, deploy_amount)
+
+
 
 
 class AgentTargeter(object):
@@ -573,7 +594,8 @@ class ManAction(object):
                 check_tile = self.agent.manager.tiles[check_key].occupied
 
                 if check_tile:
-                    if check_tile != self.agent and check_tile.agent_type == "VEHICLE":
+                    vehicles = ["VEHICLE", "ARTILLERY"]
+                    if check_tile != self.agent and check_tile.agent_type in vehicles:
                         closest.append(check_tile)
 
         if closest:

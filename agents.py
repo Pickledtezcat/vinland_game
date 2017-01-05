@@ -182,6 +182,19 @@ class Agent(object):
         self.clear_occupied()
         self.set_occupied()
 
+    def set_shell(self):
+
+        self.shell = []
+
+        for x in range(self.size + 1):
+            for y in range(self.size + 1):
+
+                x_edge = x == 0 or x == self.size
+                y_edge = y == 0 or y == self.size
+
+                if x_edge or y_edge:
+                    self.shell.append((x, y))
+
     def set_occupied(self):
 
         x, y = self.location
@@ -408,19 +421,6 @@ class VehicleAgent(Agent):
 
         self.set_shell()
 
-    def set_shell(self):
-
-        self.shell = []
-
-        for x in range(self.size + 1):
-            for y in range(self.size + 1):
-
-                x_edge = x == 0 or x == self.size
-                y_edge = y == 0 or y == self.size
-
-                if x_edge or y_edge:
-                    self.shell.append((x, y))
-
     def set_dynamic_stats(self):
 
         self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.02, "abs_speed": 0.0,
@@ -500,6 +500,57 @@ class Soldier(object):
             self.action = agent_actions.ManAction(self)
         else:
             self.action.update()
+
+
+class Artillery(Agent):
+
+    def __init__(self, manager, location, load_name, team):
+        super().__init__(manager, location, load_name, team)
+
+        self.agent_type = "ARTILLERY"
+        self.deployed = 0.0
+        self.deploy_speed = 0.02
+
+    def set_dynamic_stats(self):
+
+        self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.01, "abs_speed": 0.0,
+                              "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
+                              "shock": 0,
+                              "turning_speed": 0.005, "display_speed": 0.005, "weapons": None}
+
+    def add_box(self):
+        box = self.manager.scene.addObject("agent", self.manager.own, 0)
+        return box
+
+    def starting_state(self):
+        self.state_name = None
+        self.state = agent_states.ArtilleryStartUp(self)
+
+    def load_vehicle(self):
+
+        in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
+
+        with open(in_path, "r") as infile:
+            vehicle_dict = json.load(infile)
+
+        if self.load_name in vehicle_dict:
+            vehicle = vehicle_dict[self.load_name]
+        else:
+            vehicle = vehicle_dict["heavy mg"]
+
+        self.stats = vehicle["stats"]
+
+        if self.team == 0:
+            cammo = 2
+        else:
+            cammo = 4
+
+        self.display_object = model_display.ArtilleryModel(self.hull, self.stats, cammo=cammo)
+        self.stats = self.display_object.stats
+        self.size = 3 + self.stats["chassis_size"]
+        self.tile_offset = (self.size * 0.5) - 0.5
+
+        self.set_shell()
 
 
 class InfantrySquad(Agent):
@@ -599,7 +650,7 @@ class InfantrySquad(Agent):
 
         if self.stance == "SENTRY":
             self.prone = False
-            self.avoid_radius = 12
+            self.avoid_radius = 6
             self.dynamic_stats["speed"] = 0.02
             order = [self.deep, self.wide]
             spacing = self.spacing * 3.0
@@ -615,7 +666,7 @@ class InfantrySquad(Agent):
 
         if self.stance == "FLANK":
             self.prone = False
-            self.avoid_radius = 3
+            self.avoid_radius = 12
             self.dynamic_stats["speed"] = 0.03
             order = [self.wide, self.deep]
             spacing = self.spacing

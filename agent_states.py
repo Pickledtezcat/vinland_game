@@ -127,11 +127,11 @@ class VehicleShooting(VehicleState):
         if self.agent.rotation_target:
             return VehicleRotation
 
-        if not self.agent.enemy_target.visible:
-            self.agent.enemy_target = None
+        if not self.agent.enemy_target:
             return VehicleIdle
 
-        if not self.agent.enemy_target:
+        if not self.agent.enemy_target.visible:
+            self.agent.enemy_target = None
             return VehicleIdle
 
     def process(self):
@@ -371,11 +371,11 @@ class InfantryShooting(InfantryState):
         if self.agent.rotation_target:
             return InfantryRotation
 
-        if not self.agent.enemy_target.visible:
-            self.agent.enemy_target = None
+        if not self.agent.enemy_target:
             return InfantryIdle
 
-        if not self.agent.enemy_target:
+        if not self.agent.enemy_target.visible:
+            self.agent.enemy_target = None
             return InfantryIdle
 
     def process(self):
@@ -417,6 +417,214 @@ class InfantryMoving(InfantryState):
 
         if self.pathfinder:
 
+            self.pathfinder.update()
+
+            if self.pathfinder.done:
+                self.pathfinder = None
+
+
+class ArtilleryState(AgentState):
+    def __init__(self, agent):
+
+        """use this for over riding vehicle behaviour"""
+
+        super().__init__(agent)
+        self.agent.movement = None
+        self.agent.moving = False
+
+    def update(self):
+
+        self.agent.animation.update()
+
+        if self.agent.movement:
+            self.agent.movement.update()
+
+            if self.agent.movement.done:
+                self.agent.movement = None
+
+        self.agent.combat_control.update()
+
+        self.agent.update_dynamic_stats()
+        cam = self.agent.manager.camera.main_camera
+        center = self.agent.box.worldPosition.copy()
+        radius = self.agent.size * 2.0
+
+        self.agent.on_screen = False
+
+        if self.agent.visible:
+            if cam.sphereInsideFrustum(center, radius) != cam.OUTSIDE:
+                self.agent.on_screen = True
+
+        super().update()
+
+    def deploy_artillery(self, deploying):
+
+        if deploying:
+            if self.agent.deployed < 1.0:
+                self.agent.deployed += self.agent.deploy_speed
+
+        else:
+            if self.agent.deployed > 0.0:
+                self.agent.deployed -= self.agent.deploy_speed
+
+    def check_deployed(self, deploy):
+
+        if deploy:
+            if self.agent.deployed >= 1.0:
+                return True
+            else:
+                self.deploy_artillery(True)
+
+        else:
+            if self.agent.deployed <= 0.0:
+                return True
+            else:
+                self.deploy_artillery(False)
+
+        return False
+
+    def process(self):
+
+        """use this for over riding vehicle actions"""
+
+        super().process()
+
+        self.debug_message = "*" #str("{}").format(self.agent.combat_control.target)
+
+
+class ArtilleryStartUp(ArtilleryState):
+
+    def __init__(self, agent):
+        super().__init__(agent)
+        self.agent.load_vehicle()
+        self.agent.combat_control = agent_actions.VehicleCombatControl(self.agent)
+        self.agent.set_position()
+        self.agent.animation = agent_actions.AgentAnimation(self.agent, True)
+
+    def exit_check(self):
+
+        return ArtilleryIdle
+
+
+class ArtilleryShooting(ArtilleryState):
+
+    def __init__(self, agent):
+        super().__init__(agent)
+        self.agent.animation.survey_points()
+
+        self.agent.movement = agent_actions.AgentEnemyTargeter(self.agent)
+
+    def exit_check(self):
+
+        if not self.agent.enemy_target:
+            return ArtilleryIdle
+
+        if not self.agent.enemy_target.visible:
+            self.agent.enemy_target = None
+            return ArtilleryIdle
+
+        if self.agent.destinations:
+            if self.check_deployed(False):
+                return ArtilleryMoving
+
+        elif self.agent.rotation_target:
+            if self.check_deployed(False):
+                return ArtilleryRotation
+
+        else:
+            self.deploy_artillery(True)
+
+    def process(self):
+        super().process()
+
+        if not self.agent.movement:
+            self.agent.movement = agent_actions.AgentEnemyTargeter(self.agent)
+
+
+class ArtilleryIdle(ArtilleryState):
+
+    def __init__(self, agent):
+        super().__init__(agent)
+        self.agent.animation.survey_points()
+        self.agent.movement = agent_actions.AgentTargeter(self.agent)
+
+    def exit_check(self):
+        if self.agent.enemy_target:
+            if self.check_deployed(False):
+                return ArtilleryShooting
+
+        elif self.agent.destinations:
+            if self.check_deployed(False):
+                return ArtilleryMoving
+
+        elif self.agent.rotation_target:
+            if self.check_deployed(False):
+                return ArtilleryRotation
+
+        else:
+            self.deploy_artillery(True)
+
+    def process(self):
+        super().process()
+
+
+class ArtilleryRotation(ArtilleryState):
+
+    def __init__(self, agent):
+        super().__init__(agent)
+
+        self.agent.get_facing()
+
+        self.agent.movement = agent_actions.AgentTargeter(self.agent)
+        self.agent.rotation_target = None
+
+    def exit_check(self):
+        if self.agent.enemy_target:
+            return ArtilleryShooting
+
+        if self.agent.destinations:
+            return ArtilleryMoving
+
+        if self.agent.rotation_target:
+            return ArtilleryRotation
+
+        if not self.agent.movement:
+            return ArtilleryIdle
+
+    def process(self):
+        super().process()
+
+
+class ArtilleryMoving(ArtilleryState):
+
+    def __init__(self, agent):
+        super().__init__(agent)
+
+        self.agent.stop_movement = False
+
+        if self.agent.destinations:
+            destination = self.agent.destinations.pop(0)
+            self.pathfinder = agent_actions.AgentPathfinding(self.agent, destination)
+
+        else:
+            self.pathfinder = None
+
+        self.agent.movement = agent_actions.AgentTargeter(self.agent)
+
+    def exit_check(self):
+
+        if not self.pathfinder:
+            if self.agent.rotation_target:
+                return ArtilleryRotation
+            if self.agent.destinations:
+                return ArtilleryMoving
+            else:
+                return ArtilleryIdle
+
+    def process(self):
+        super().process()
+
+        if self.pathfinder:
             self.pathfinder.update()
 
             if self.pathfinder.done:
