@@ -462,11 +462,11 @@ class ArtilleryState(AgentState):
 
         if deploying:
             if self.agent.deployed < 1.0:
-                self.agent.deployed += self.agent.deploy_speed
+                self.agent.deployed += self.agent.dynamic_stats['deploy_speed']
 
         else:
             if self.agent.deployed > 0.0:
-                self.agent.deployed -= self.agent.deploy_speed
+                self.agent.deployed -= self.agent.dynamic_stats['deploy_speed']
 
     def check_deployed(self, deploy):
 
@@ -626,6 +626,7 @@ class ArtilleryMoving(ArtilleryState):
         super().process()
 
         if self.pathfinder:
+
             self.pathfinder.update()
 
             if self.pathfinder.done:

@@ -95,6 +95,7 @@ class Agent(object):
     extra_movement = 0.0
     throttle = 0.0
     throttle_target = 0.0
+    turret_rotation = 0.0
 
     moving = False
     off_road = False
@@ -245,6 +246,7 @@ class Agent(object):
 
     def set_waiting(self):
         self.throttle = 0.0
+        self.target_tile = None
         self.movement = agent_actions.AgentPause(self)
 
     def process_commands(self):
@@ -377,7 +379,7 @@ class Agent(object):
 
         self.dynamic_stats = {"handling": 0.5, "acceleration": 0.5, "speed": 0.2, "abs_speed": 0.2,
                               "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
-                              "shock": 0,
+                              "shock": 0, "turret_speed": 0.02,
                               "turning_speed": 0.2, "display_speed": 0.0, "weapons": None}
 
     def update_dynamic_stats(self):
@@ -418,7 +420,7 @@ class VehicleAgent(Agent):
         else:
             cammo = 4
 
-        self.display_object = model_display.VehicleModel(self.hull, self.stats, cammo=cammo)
+        self.display_object = model_display.VehicleModel(self.hull, self.stats, owner=self, cammo=cammo)
         self.stats = self.display_object.stats
         self.size = 3 + self.stats["chassis_size"]
         self.tile_offset = (self.size * 0.5) - 0.5
@@ -429,7 +431,7 @@ class VehicleAgent(Agent):
 
         self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.02, "abs_speed": 0.0,
                               "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
-                              "shock": 0,
+                              "shock": 0, "turret_speed": 0.01,
                               "turning_speed": 0.02, "display_speed": 0.0, "weapons": None}
 
         # add more stats here
@@ -446,7 +448,6 @@ class VehicleAgent(Agent):
             acceleration = self.dynamic_stats["acceleration"]
 
         self.throttle = bgeutils.interpolate_float(self.throttle, self.throttle_target, acceleration)
-
         drive_mod = 1.0
 
         if self.reversing:
@@ -532,8 +533,19 @@ class Artillery(Agent):
 
         self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.01, "abs_speed": 0.01,
                               "crew": 1.0, "drive": "WHEELED", "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
-                              "shock": 0,
+                              "shock": 0, "turret_speed": 0.02, "deploy_speed":0.02,
                               "turning_speed": 0.005, "display_speed": 0.005, "weapons": None}
+
+    def update_dynamic_stats(self):
+
+        if self.toggle_visible:
+            self.toggle_visible = not self.toggle_visible
+            self.set_visible(self.visible)
+
+        if self.movement:
+            self.dynamic_stats['display_speed'] = self.dynamic_stats['speed']
+        else:
+            self.dynamic_stats['display_speed'] = 0.0
 
     def add_box(self):
         box = self.manager.scene.addObject("agent", self.manager.own, 0)
@@ -562,29 +574,32 @@ class Artillery(Agent):
         else:
             cammo = 4
 
-        self.display_object = model_display.ArtilleryModel(self.hull, self.stats, cammo=cammo)
+        self.display_object = model_display.ArtilleryModel(self.hull, self.stats, owner=self, cammo=cammo)
         self.stats = self.display_object.stats
         self.size = 3 + self.stats["chassis_size"]
         self.tile_offset = (self.size * 0.5) - 0.5
 
         self.set_shell()
 
-    def check_occupied(self, location):
+        if self.stats['tons'] > 12:
+            self.dynamic_stats['speed'] = 0.025
+            self.dynamic_stats['turning_speed'] = 0.001
+            self.dynamic_stats['deploy_speed'] = 0.005
 
-        x, y = location
-        occupied = []
+        elif self.stats['tons'] > 7:
+            self.dynamic_stats['speed'] = 0.05
+            self.dynamic_stats['turning_speed'] = 0.003
+            self.dynamic_stats['deploy_speed'] = 0.01
 
-        for xp in range(self.size):
-            for yp in range(self.size):
-                check_key = (x + xp, y + yp)
-                check_tile = self.manager.tiles[check_key].occupied
+        elif self.stats['tons'] > 5:
+            self.dynamic_stats['speed'] = 0.1
+            self.dynamic_stats['turning_speed'] = 0.005
+            self.dynamic_stats['deploy_speed'] = 0.015
 
-                if check_tile:
-                    if check_tile != self:
-                        occupied.append(check_tile)
-
-        if occupied:
-            return occupied
+        else:
+            self.dynamic_stats['speed'] = 0.13
+            self.dynamic_stats['turning_speed'] = 0.007
+            self.dynamic_stats['deploy_speed'] = 0.02
 
     def set_visible(self, value):
         self.visible = value

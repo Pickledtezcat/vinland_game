@@ -1,15 +1,16 @@
 import bge
-from mathutils import Vector, Matrix
+import mathutils
 import bgeutils
 import vehicle_parts
 
 
 class VehicleModel(object):
-    def __init__(self, adder, stats, scale=1.0, cammo=0):
+    def __init__(self, adder, stats, owner=None, scale=1.0, cammo=0):
 
         self.adder = adder
         self.scene = self.adder.scene
         self.stats = stats
+        self.owner = owner
         self.scale = scale
         self.parts_dict = vehicle_parts.get_vehicle_parts()
 
@@ -144,6 +145,11 @@ class VehicleModel(object):
             turret = self.scene.addObject(turret_string, self.turret_adder, 0)
             turret.setParent(self.vehicle)
             self.turret = turret
+
+        if self.turret:
+            self.turret_rest = self.turret.localTransform
+        else:
+            self.turret_rest = None
 
         self.gun_adders = {}
         adders = ["left_gun", "right_gun", "back_gun", "front_gun", "turret_gun"]
@@ -321,7 +327,9 @@ class VehicleModel(object):
     def end_vehicle(self):
         self.vehicle.endObject()
 
-    def movement_action(self, speed):
+    def movement_action(self):
+
+        speed = self.owner.dynamic_stats['display_speed']
 
         for wheel in self.wheels:
             wheel.applyRotation([-speed, 0.0, 0.0], 1)
@@ -352,13 +360,27 @@ class VehicleModel(object):
                 transform = bgeutils.Matrix.Translation((0.001, 0.0, 0.0))
                 mesh.transformUV(0, transform)
 
+    def turret_turn(self):
+
+        if self.turret:
+            turret_angle = self.owner.turret_rotation
+            rot_mat = mathutils.Matrix.Rotation(turret_angle, 4, "Z")
+            turret_target = self.turret_rest * rot_mat
+            self.turret.localTransform = turret_target
+
+    def game_update(self):
+
+        self.movement_action()
+        self.turret_turn()
+
 
 class ArtilleryModel(object):
-    def __init__(self, adder, stats, scale=1.0, cammo=0):
+    def __init__(self, adder, stats, owner=None, scale=1.0, cammo=0):
 
         self.adder = adder
         self.scene = self.adder.scene
         self.stats = stats
+        self.owner = owner
         self.scale = scale
         self.parts_dict = vehicle_parts.get_vehicle_parts()
 
@@ -467,6 +489,12 @@ class ArtilleryModel(object):
 
         self.wheels = bgeutils.get_ob_list("wheels", self.vehicle.children)
         self.turret = bgeutils.get_ob("turret", self.vehicle.children)
+
+        if self.turret:
+            self.turret_rest = self.turret.localTransform
+        else:
+            self.turret_rest = None
+
         self.tracks = []
 
         self.vehicle.color = color
@@ -478,7 +506,9 @@ class ArtilleryModel(object):
     def end_vehicle(self):
         self.vehicle.endObject()
 
-    def movement_action(self, speed):
+    def movement_action(self):
+
+        speed = self.owner.dynamic_stats['display_speed']
 
         for wheel in self.wheels:
             wheel.applyRotation([-speed, 0.0, 0.0], 1)
@@ -487,6 +517,32 @@ class ArtilleryModel(object):
             mesh = track.meshes[0]
             transform = bgeutils.Matrix.Translation((speed * 0.01, 0.0, 0.0))
             mesh.transformUV(0, transform)
+
+    def deploy(self):
+
+        deploy_amount = self.owner.deployed
+
+        for leg in self.legs:
+            leg_model = leg['leg']
+            start = leg['start']
+            end = leg['end']
+            leg_model.localTransform = start.lerp(end, deploy_amount)
+
+        gun = self.gun
+
+        if gun:
+            gun_model = gun['gun']
+            start = gun['start']
+            end = gun['end']
+            gun_model.localTransform = start.lerp(end, deploy_amount)
+
+    def turret_turn(self):
+
+        if self.turret:
+            turret_angle = self.owner.turret_rotation
+            rot_mat = mathutils.Matrix.Rotation(turret_angle, 4, "Z")
+            turret_target = self.turret_rest * rot_mat
+            self.turret.localTransform = turret_target
 
     def preview_update(self, rotation):
 
@@ -526,3 +582,7 @@ class ArtilleryModel(object):
             if self.gun:
                 self.gun['gun'].localTransform = self.gun['start'].lerp(self.gun['end'], bgeutils.smoothstep(self.display_cycle))
 
+    def game_update(self):
+        self.movement_action()
+        self.deploy()
+        self.turret_turn()

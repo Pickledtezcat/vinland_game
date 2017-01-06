@@ -72,16 +72,14 @@ class AgentAnimation(object):
 
         start = mathutils.Vector([location[0] + self.agent.tile_offset, location[1] + self.agent.tile_offset, 0.0])
         start_key = bgeutils.get_key(start)
+        self.start_hit = self.agent.manager.tiles[start_key]
 
         if target:
             end = mathutils.Vector([target[0] + self.agent.tile_offset, target[1] + self.agent.tile_offset, 0.0])
+            end_key = bgeutils.get_key(end)
+            self.end_hit = self.agent.manager.tiles[end_key]
         else:
-            end = start.copy()
-
-        end_key = bgeutils.get_key(end)
-
-        self.start_hit = self.agent.manager.tiles[start_key]
-        self.end_hit = self.agent.manager.tiles[end_key]
+            self.end_hit = self.start_hit
 
         if self.vehicle:
             if self.agent.on_screen and target:
@@ -139,7 +137,6 @@ class AgentAnimation(object):
 
                 speed = self.agent.dynamic_stats["display_speed"]
 
-                self.agent.display_object.movement_action(speed)
                 self.trails.movement_trail(abs(speed))
 
             else:
@@ -150,29 +147,11 @@ class AgentAnimation(object):
                 self.agent.hull.alignAxisToVect(local_y, 1, 1.0)
                 self.agent.hull.alignAxisToVect(target_vector, 2, 1.0)
 
-            if self.agent.agent_type == "ARTILLERY":
-                self.deploy()
+            if self.agent.display_object:
+                self.agent.display_object.game_update()
+
         else:
             self.agent.screen_position = None
-
-    def deploy(self):
-        deploy_amount = self.agent.deployed
-
-        for leg in self.agent.display_object.legs:
-            leg_model = leg['leg']
-            start = leg['start']
-            end = leg['end']
-            leg_model.localTransform = start.lerp(end, deploy_amount)
-
-        gun = self.agent.display_object.gun
-
-        if gun:
-            gun_model = gun['gun']
-            start = gun['start']
-            end = gun['end']
-            gun_model.localTransform = start.lerp(end, deploy_amount)
-
-
 
 
 class AgentTargeter(object):
@@ -724,10 +703,12 @@ class AgentPathfinding(object):
 
                 closest, next_facing, next_target, free, touching_infantry = self.next_tile()
 
-                if free < 6 and closest < 6 and len(self.history) > 12:
-                    #self.destination = None
-                    self.agent.target_tile = None
-                    self.agent.set_waiting()
+                if free < 6 and closest < 6:
+                    if len(self.history) > 25:
+                        self.destination = None
+                    else:
+                        self.history.append(None)
+                        self.agent.set_waiting()
 
                 elif self.agent.location == self.destination:
                     self.destination = None
@@ -737,7 +718,6 @@ class AgentPathfinding(object):
 
                 elif next_target:
                     if touching_infantry:
-                        self.agent.target_tile = None
                         self.agent.set_waiting()
 
                     else:
@@ -822,32 +802,61 @@ class CombatControl(object):
         self.process()
 
 
+class TurretRotation(object):
+
+    def __init__(self, start_angle, end_angle, speed, difference):
+
+        self.start = start_angle
+        self.end = end_angle
+
+        scale = difference / 3.142
+        self.speed = speed / scale
+        self.progress = 0.0
+        self.done = False
+
+
+        self.current_angle = start_angle
+
+    def update(self):
+
+        if not self.done:
+            if self.progress >= 1.0:
+                self.done = True
+            else:
+                self.progress += self.speed
+
+            self.current_angle = bgeutils.interpolate_float(self.start, self.end, self.progress)
+
+
 class VehicleCombatControl(CombatControl):
     def __init__(self, agent):
         super().__init__(agent)
 
         if self.agent.stats["turret_size"] > 0:
             self.turret = self.agent.display_object.turret
-            self.turret_rest = self.turret.localTransform
+            self.turret_control = None
 
     def target_turret(self):
 
         if self.turret:
-            if self.target:
-                local_y = self.agent.agent_hook.getAxisVect([0.0, 1.0, 0.0]).to_2d()
-                target_vector = (self.target.box.worldPosition.copy() - self.agent.box.worldPosition.copy()).to_2d()
-
-                enemy_angle = local_y.angle_signed(target_vector, 0.0) * -1.0
-
-                rot_mat = mathutils.Matrix.Rotation(enemy_angle, 4, "Z")
-                turret_target = self.turret_rest * rot_mat
-
-                self.turret.localTransform = self.turret.localTransform.lerp(turret_target, 0.02)
-
+            if self.turret_control:
+                self.turret_control.update()
+                self.agent.turret_rotation = self.turret_control.current_angle
+                if self.turret_control.done:
+                    self.turret_control = None
             else:
-                rot_mat = mathutils.Matrix.Rotation(0.0, 4, "Z")
-                turret_target = self.turret_rest * rot_mat
-                self.turret.localTransform = self.turret.localTransform.lerp(turret_target, 0.02)
+
+                if self.target:
+                    local_y = self.agent.agent_hook.getAxisVect([0.0, 1.0, 0.0]).to_2d()
+                    target_vector = (self.target.box.worldPosition.copy() - self.agent.box.worldPosition.copy()).to_2d()
+                    enemy_angle = local_y.angle_signed(target_vector, 0.0) * -1.0
+                else:
+                    enemy_angle = 0.0
+
+                turn_speed = self.agent.dynamic_stats['turret_speed']
+                difference = abs(enemy_angle - self.agent.turret_rotation)
+                if difference > 0.05:
+                    self.turret_control = TurretRotation(self.agent.turret_rotation, enemy_angle, turn_speed, difference)
 
     def process(self):
         self.target_turret()

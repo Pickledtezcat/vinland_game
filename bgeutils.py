@@ -99,7 +99,6 @@ def get_ob_list(string, ob_list):
 
 
 def interpolate_float(current, target, factor):
-
     return (current * (1.0 - factor)) + (target * factor)
 
 
