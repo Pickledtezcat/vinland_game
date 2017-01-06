@@ -541,6 +541,7 @@ class Artillery(Agent):
 
     def load_vehicle(self):
 
+
         in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
 
         with open(in_path, "r") as infile:
