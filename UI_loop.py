@@ -61,7 +61,7 @@ class UIBar(object):
 
         # self.health_bar.color = [0.0, 1.0, 0.0, 1.0]
         # self.shock_bar.color = [1.0, 0.0, 0.0, 1.0]
-        self.shock_bar.localScale.x = 0.5
+        self.shock_bar.localScale.x = 0.0
 
     def end_bar(self):
         self.bar.endObject()

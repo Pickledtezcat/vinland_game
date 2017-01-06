@@ -177,7 +177,9 @@ class GameLoop(object):
             for y in range(-2, (self.level_size * 8) +2):
                 point = mathutils.Vector([x, y, 0.0])
                 ray = bgeutils.ground_ray(self.own, survey_point=point)
+
                 if ray:
+                    ray[1].z += 0.5
                     tile = bgeutils.TerrainTile(*ray)
                     terrain = self.terrain.field.get(bgeutils.get_terrain_position((x, y)), 2)
                     tile.off_road = not bool(terrain)
@@ -194,8 +196,8 @@ class GameLoop(object):
         self.LOS_manager.do_paint()
         self.waypoints = bgeutils.Waypoints(self)
 
-        #for i in range(2):
-        #    agents.VehicleAgent(self, (103, 112 + (i * 10)), "primitive-tank", 0)
+        for i in range(2):
+            agents.VehicleAgent(self, (103, 112 + (i * 10)), "primitive-tank", 0)
 
         #agents.VehicleAgent(self, (80, 130), "old tank", 1)
 
@@ -207,6 +209,8 @@ class GameLoop(object):
         agents.Artillery(self, (80, 130), "light gun", 0)
         agents.Artillery(self, (80, 137), "80mm mortar", 0)
         agents.Artillery(self, (80, 143), "heavy mg", 0)
+        agents.Artillery(self, (80, 155), "heavy antitank", 0)
+        agents.Artillery(self, (80, 170), "heavy artillery", 0)
 
         agents.InfantrySquad(self, (180, 90), "squad", 1)
 

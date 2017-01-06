@@ -318,6 +318,7 @@ class Agent(object):
 
             if command.name == "STANCE_CHANGE":
                 self.stance = command.condition
+                self.set_formation()
 
         self.commands = []
 
@@ -325,6 +326,9 @@ class Agent(object):
             self.debug_text.text_object.color = [0.0, 1.0, 0.0, 1.0]
         else:
             self.debug_text.text_object.color = [1.0, 0.0, 0.0, 1.0]
+
+    def set_formation(self):
+        pass
 
     def exit_facing(self):
 
@@ -410,7 +414,7 @@ class VehicleAgent(Agent):
         self.stats = vehicle["stats"]
 
         if self.team == 0:
-            cammo = 2
+            cammo = 3
         else:
             cammo = 4
 
@@ -488,8 +492,11 @@ class Soldier(object):
             meshes = ["HRE_RIFLE", "HRE_SMG", "HRE_ANTI_TANK", "HRE_MG"]
             self.mesh_name = random.choice(meshes)
 
+
+        self.mesh.worldPosition.z += 1.0
+        self.mesh.worldPosition.x -= 0.25
+        self.mesh.worldPosition.y -= 0.25
         self.mesh.setParent(self.box)
-        self.mesh.worldPosition.z += 1.5
 
         self.action = None
 
@@ -518,9 +525,6 @@ class Artillery(Agent):
         self.avoid_radius = 3
         self.prone = False
 
-        self.size = 4
-        self.tile_offset = (self.size * 0.5) - 0.5
-
         self.men = []
         self.add_squad()
 
@@ -540,7 +544,6 @@ class Artillery(Agent):
         self.state = agent_states.ArtilleryStartUp(self)
 
     def load_vehicle(self):
-
 
         in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
 

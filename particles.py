@@ -233,12 +233,12 @@ class Track(Particle):
                 self.align_tracks()
 
             else:
-                self.track_timer -= 0.1
+                self.track_timer -= 0.05
 
         else:
             self.object_box.color[3] *= 0.99
 
-        if self.dropped:
+        if self.dropped and not self.finished:
             self.align_tracks()
             self.dropped = False
             self.finished = True

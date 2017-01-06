@@ -400,7 +400,7 @@ class ArtilleryModel(object):
                 for w in weapons:
                     total_rating += w['rating']
 
-                if total_rating > 25:
+                if total_rating > 35:
                     model = "heavy_rocket_launcher"
                 elif total_rating > 15:
                     model = "medium_rocket_launcher"
@@ -424,7 +424,7 @@ class ArtilleryModel(object):
                         model = "light_artillery"
 
                 else:
-                    if weapon_rating > 9:
+                    if weapon_rating > 7:
                         model = "heavy_anti_tank_gun"
                     elif weapon_rating > 5:
                         model = "medium_anti_tank_gun"
@@ -434,7 +434,7 @@ class ArtilleryModel(object):
                     #     model = "heavy_machine_gun"
 
         self.vehicle = self.scene.addObject(model, self.adder, 0)
-        self.vehicle.worldPosition.z += 1.5
+        #self.vehicle.worldPosition.z += 0.5
         self.vehicle.setParent(self.adder)
 
         self.crew_adders = bgeutils.get_ob_list("crew", self.vehicle.children)

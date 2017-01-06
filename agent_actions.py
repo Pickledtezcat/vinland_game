@@ -557,8 +557,10 @@ class ManAction(object):
 
         elif self.location == self.destination:
             if not self.avoiding:
-                if self.agent.enemy_target or self.agent.agent_type == "ARTILLERY":
+                if self.agent.enemy_target:
                     action = "FACE_TARGET"
+                elif self.agent.agent_type == "ARTILLERY":
+                    action = "FACE_GUN"
                 else:
                     action = "WAIT"
 
@@ -568,9 +570,34 @@ class ManAction(object):
             self.target = None
             self.end = self.start
             self.direction = self.agent.facing
+        elif action == "FACE_GUN":
+            self.target = None
+            self.end = self.start
+            self.face_gun()
         elif action == "WAIT":
             self.target = None
             self.end = self.start
+
+    def face_gun(self):
+
+        search_array = [(1, 0), (1, 1), (0, 1), (1, -1), (-1, 0), (-1, 1), (0, -1), (-1, -1)]
+
+        parent_position = self.agent.box.worldPosition.to_2d()
+        own_position = mathutils.Vector(self.location)
+
+        gun_vector = parent_position - own_position
+
+        best_facing = search_array[0]
+        best_angle = 4.0
+
+        for facing in search_array:
+            facing_vector = mathutils.Vector(facing)
+            angle = gun_vector.angle(facing_vector)
+            if angle < best_angle:
+                best_facing = facing
+                best_angle = angle
+
+        self.direction = best_facing
 
     def check_occupied(self, target_tile):
 
@@ -698,7 +725,9 @@ class AgentPathfinding(object):
                 closest, next_facing, next_target, free, touching_infantry = self.next_tile()
 
                 if free < 6 and closest < 6 and len(self.history) > 12:
-                    self.destination = None
+                    #self.destination = None
+                    self.agent.target_tile = None
+                    self.agent.set_waiting()
 
                 elif self.agent.location == self.destination:
                     self.destination = None
