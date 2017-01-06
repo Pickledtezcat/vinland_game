@@ -464,7 +464,6 @@ class VehicleAgent(Agent):
 
         self.dynamic_stats["speed"] = (self.dynamic_stats["abs_speed"] * drive_mod) * self.throttle
         self.dynamic_stats["turning_speed"] = self.dynamic_stats["acceleration"] * 0.8
-        self.dynamic_stats["speed"] = self.dynamic_stats["abs_speed"] * self.throttle
         self.dynamic_stats["display_speed"] = self.dynamic_stats["speed"] * 4.0
 
         if self.reversing:
@@ -490,14 +489,17 @@ class Soldier(object):
             self.mesh_name = random.choice(meshes)
 
         self.mesh.setParent(self.box)
-        self.mesh.worldPosition.z += 2.0
+        self.mesh.worldPosition.z += 1.5
 
         self.action = None
 
     def update(self):
 
         if not self.action:
-            self.action = agent_actions.ManAction(self)
+            if self.agent.agent_type == "ARTILLERY":
+                self.action = agent_actions.ArtilleryManAction(self)
+            else:
+                self.action = agent_actions.ManAction(self)
         else:
             self.action.update()
 
@@ -511,10 +513,21 @@ class Artillery(Agent):
         self.deployed = 0.0
         self.deploy_speed = 0.02
 
+        self.man_type = "HRE_ENGINEER"
+        self.formation = []
+        self.avoid_radius = 3
+        self.prone = False
+
+        self.size = 4
+        self.tile_offset = (self.size * 0.5) - 0.5
+
+        self.men = []
+        self.add_squad()
+
     def set_dynamic_stats(self):
 
-        self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.01, "abs_speed": 0.0,
-                              "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
+        self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.01, "abs_speed": 0.01,
+                              "crew": 1.0, "drive": "WHEELED", "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
                               "shock": 0,
                               "turning_speed": 0.005, "display_speed": 0.005, "weapons": None}
 
@@ -552,6 +565,72 @@ class Artillery(Agent):
 
         self.set_shell()
 
+    def check_occupied(self, location):
+
+        x, y = location
+        occupied = []
+
+        for xp in range(self.size):
+            for yp in range(self.size):
+                check_key = (x + xp, y + yp)
+                check_tile = self.manager.tiles[check_key].occupied
+
+                if check_tile:
+                    if check_tile != self:
+                        occupied.append(check_tile)
+
+        if occupied:
+            return occupied
+
+    def set_visible(self, value):
+        self.visible = value
+
+        for man in self.men:
+            man.mesh.visible = value
+
+    def set_starting_formation(self):
+
+        self.formation = []
+        points = self.display_object.crew_adders
+
+        for point in points:
+            position = (point.worldPosition - self.box.worldPosition).to_3d()
+            self.formation.append(position)
+
+    def set_formation(self):
+
+        if self.stance == "AGGRESSIVE":
+            self.prone = False
+            self.dynamic_stats["speed"] = 0.025
+
+        if self.stance == "SENTRY":
+            self.prone = False
+            self.dynamic_stats["speed"] = 0.02
+
+        if self.stance == "DEFEND":
+            self.prone = True
+            self.dynamic_stats["speed"] = 0.015
+
+        if self.stance == "FLANK":
+            self.prone = False
+            self.dynamic_stats["speed"] = 0.03
+
+    def add_squad(self):
+
+        self.set_starting_formation()
+        self.set_formation()
+
+        points = self.display_object.crew_adders
+
+        for i in range(len(points)):
+            self.men.append(Soldier(self, i))
+
+    def process_squad(self):
+
+        for man in self.men:
+            if not man.dead:
+                man.update()
+
 
 class InfantrySquad(Agent):
 
@@ -561,7 +640,7 @@ class InfantrySquad(Agent):
         self.agent_type = "INFANTRY"
 
         load_dict = {"officer": [1, 1, "HRE_OFFICER"],
-                     "scout": [3, 1, "HRE_SCOUT"],
+                     "engineer": [2, 1, "HRE_ENGINEER"],
                      "mg": [6, 1, "HRE_MG"],
                      "anti-tank": [2, 2, "HRE_ANTI_TANK"],
                      "squad": [5, 3, None]}
@@ -589,7 +668,7 @@ class InfantrySquad(Agent):
     def set_dynamic_stats(self):
 
         self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.03, "abs_speed": 0.0,
-                              "crew": 1.0, "drive": 1.0, "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
+                              "crew": 1.0, "drive": "FOOT", "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
                               "shock": 0,
                               "turning_speed": 0.015, "display_speed": 0.0, "weapons": None}
 

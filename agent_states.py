@@ -435,6 +435,7 @@ class ArtilleryState(AgentState):
     def update(self):
 
         self.agent.animation.update()
+        self.agent.process_squad()
 
         if self.agent.movement:
             self.agent.movement.update()

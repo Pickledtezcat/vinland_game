@@ -199,7 +199,7 @@ class GameLoop(object):
 
         #agents.VehicleAgent(self, (80, 130), "old tank", 1)
 
-        squads = ["mg", "squad", "officer", "scout", "squad", "anti-tank"]
+        squads = ["mg", "squad", "officer", "engineer", "squad", "anti-tank"]
 
         for i in range(5):
             agents.InfantrySquad(self, (150, 90 + (i * 10)), squads[i], 0)

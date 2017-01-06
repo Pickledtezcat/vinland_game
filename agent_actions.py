@@ -557,7 +557,7 @@ class ManAction(object):
 
         elif self.location == self.destination:
             if not self.avoiding:
-                if self.agent.enemy_target:
+                if self.agent.enemy_target or self.agent.agent_type == "ARTILLERY":
                     action = "FACE_TARGET"
                 else:
                     action = "WAIT"
@@ -612,6 +612,29 @@ class ManAction(object):
             self.agent.manager.tiles[self.occupied].occupied = None
 
         self.occupied = None
+
+
+class ArtilleryManAction(ManAction):
+
+    def check_occupied(self, target_tile):
+        return False
+
+        check_tile = self.agent.manager.tiles[target_tile].occupied
+
+        if check_tile:
+            if check_tile != self.agent:
+                return True
+
+    def check_too_close(self, target_tile):
+        return False
+
+    def set_occupied(self, set_tile):
+
+        pass
+
+    def clear_occupied(self):
+
+        pass
 
 
 class AgentPathfinding(object):

@@ -434,14 +434,14 @@ class ArtilleryModel(object):
                     #     model = "heavy_machine_gun"
 
         self.vehicle = self.scene.addObject(model, self.adder, 0)
-        self.vehicle.worldPosition.z += 0.2
+        self.vehicle.worldPosition.z += 1.5
         self.vehicle.setParent(self.adder)
 
-        crew_adders = bgeutils.get_ob_list("crew", self.vehicle.children)
+        self.crew_adders = bgeutils.get_ob_list("crew", self.vehicle.children)
 
-        for crew_adder in crew_adders:
-            crew_man = crew_adder.scene.addObject("artillery_crewman", crew_adder, 0)
-            crew_man.setParent(crew_adder)
+        # for crew_adder in self.crew_adders:
+        #     crew_man = crew_adder.scene.addObject("artillery_crewman", crew_adder, 0)
+        #     crew_man.setParent(crew_adder)
 
         legs = bgeutils.get_ob_list("leg", self.vehicle.children)
         self.legs = []
