@@ -383,6 +383,7 @@ class ArtilleryModel(object):
         self.owner = owner
         self.scale = scale
         self.parts_dict = vehicle_parts.get_vehicle_parts()
+        self.gun_adders = []
 
         self.display_cycle = 0.0
         self.cycling = False
@@ -395,12 +396,24 @@ class ArtilleryModel(object):
                          6: 4}
 
         icon = faction_icons[self.stats["faction_number"]]
+        chassis_size = self.stats["chassis_size"] - 1
+
+        faction_number = 1
+
+        factions = {0: [2, 5], 1: [1, 4], 2: [3, 6]}
+        for faction_key in factions:
+            faction_list = factions[faction_key]
+            if self.stats["faction_number"] in faction_list:
+                faction_number = faction_key
 
         color = [icon * 0.25, 0.0, cammo * 0.125, 1.0]
 
         all_weapons = self.stats["weapons"]["FRONT"]
 
         model = "light_machine_gun"
+        weapon = None
+        add_gun_mount = True
+        artillery = ["LOW_VELOCITY", "NO_SIGHTS"]
 
         if all_weapons:
             weapon = all_weapons[0]
@@ -408,14 +421,18 @@ class ArtilleryModel(object):
             weapon_rating = weapon['rating']
 
             if "AA_MOUNT" in flags:
-                if weapon_rating > 9:
-                    model = "heavy_aa"
-                elif weapon_rating > 3:
-                    model = "medium_aa"
-                else:
-                    model = "light_aa"
+                add_gun_mount = True
+
+                aa_size_dict = {0: "heavy_machine_gun",
+                                1: "light_aa",
+                                2: "medium_aa",
+                                3: "heavy_aa",
+                                4: "heavy_aa",
+                                5: "heavy_aa"}
+                model = aa_size_dict[chassis_size]
 
             elif "ROCKET_MOUNT" in flags:
+                add_gun_mount = False
 
                 weapons = self.stats["weapons"]["FRONT"]
                 total_rating = 0
@@ -430,46 +447,49 @@ class ArtilleryModel(object):
                     model = "light_rocket_launcher"
 
             else:
-                artillery = ["LOW_VELOCITY", "NO_SIGHTS"]
 
                 if weapon['flags'] == "MORTAR":
-                    if weapon_rating < 10:
+                    add_gun_mount = False
+                    if chassis_size > 1:
                         model = "light_mortar"
                     else:
                         model = "heavy_mortar"
+
                 elif weapon['flags'] in artillery:
-                    if weapon_rating > 14:
-                        model = "heavy_artillery"
-                    elif weapon_rating > 9:
-                        model = "medium_artillery"
-                    else:
-                        model = "light_artillery"
+
+                    artillery_size_dict = {0: "heavy_machine_gun",
+                                           1: "light_artillery",
+                                           2: "medium_artillery",
+                                           3: "heavy_artillery",
+                                           4: "heavy_artillery",
+                                           5: "heavy_artillery"}
+                    model = artillery_size_dict[chassis_size]
 
                 else:
-                    if weapon_rating > 7:
-                        model = "heavy_anti_tank_gun"
-                    elif weapon_rating > 5:
-                        model = "medium_anti_tank_gun"
-                    elif weapon_rating > 2:
-                        model = "light_anti_tank_gun"
-                    # else:
-                    #     model = "heavy_machine_gun"
+                    at_size_dict = {0: "heavy_machine_gun",
+                                    1: "light_anti_tank_gun",
+                                    2: "medium_anti_tank_gun",
+                                    3: "heavy_anti_tank_gun",
+                                    4: "heavy_anti_tank_gun",
+                                    5: "heavy_anti_tank_gun"}
+
+                    model = at_size_dict[chassis_size]
 
         self.vehicle = self.scene.addObject(model, self.adder, 0)
-        #self.vehicle.worldPosition.z += 0.5
         self.vehicle.setParent(self.adder)
 
         self.crew_adders = bgeutils.get_ob_list("crew", self.vehicle.children)
 
-        # for crew_adder in self.crew_adders:
-        #     crew_man = crew_adder.scene.addObject("artillery_crewman", crew_adder, 0)
-        #     crew_man.setParent(crew_adder)
+        if not self.owner:
+            for crew_adder in self.crew_adders:
+                crew_man = crew_adder.scene.addObject("artillery_crewman", crew_adder, 0)
+                crew_man.setParent(crew_adder)
 
         legs = bgeutils.get_ob_list("leg", self.vehicle.children)
         self.legs = []
 
         for leg in legs:
-            if leg.children != []:
+            if leg.children:
                 end = bgeutils.get_ob("deployed_position", leg.children)
                 if end:
                     leg_set = {'leg': leg, 'start': leg.localTransform, "end": end.localTransform}
@@ -477,7 +497,7 @@ class ArtilleryModel(object):
                     self.legs.append(leg_set)
 
         self.gun = None
-        gun = bgeutils.get_ob("gun", self.vehicle.children)
+        gun = bgeutils.get_ob("gun", self.vehicle.childrenRecursive)
 
         if gun:
             if gun.children:
@@ -486,6 +506,40 @@ class ArtilleryModel(object):
                     gun_set = {'gun': gun, 'start': gun.localTransform, "end": end.localTransform}
                     end.endObject()
                     self.gun = gun_set
+
+            if weapon and add_gun_mount:
+                for child_ob in gun.children:
+                    child_ob.endObject()
+
+                gun.localPosition.z += 1.0
+                gun.visible = False
+
+                gun_block_string = "v_gun_block_{}_{}".format(faction_number, chassis_size)
+                gun_block = gun.scene.addObject(gun_block_string, gun, 0)
+                gun_block.setParent(gun)
+                adders = bgeutils.get_ob_list("mount_gun", gun_block.children)
+
+                adder_list = [[ob["mount_gun"], ob] for ob in adders]
+                adder_list = sorted(adder_list)
+
+                if adder_list:
+                    adders = [ob[1] for ob in adder_list]
+
+                gun_mount = adders[0]
+
+                if gun_mount:
+                    gun_size = weapon["visual"]
+                    if gun_size != 10:
+
+                        if weapon['flags'] == "HIGH_VELOCITY":
+                            brake = 0
+                        else:
+                            brake = 1
+
+                        gun_string = "v_a_gun_{}_{}".format(brake, gun_size)
+                        gun_barrel = gun_mount.scene.addObject(gun_string, gun_mount, 0)
+                        gun_barrel.setParent(gun)
+                        gun_mount.endObject()
 
         self.wheels = bgeutils.get_ob_list("wheels", self.vehicle.children)
         self.turret = bgeutils.get_ob("turret", self.vehicle.children)
@@ -580,7 +634,8 @@ class ArtilleryModel(object):
                 leg['leg'].localTransform = leg['start'].lerp(leg['end'], bgeutils.smoothstep(self.display_cycle))
 
             if self.gun:
-                self.gun['gun'].localTransform = self.gun['start'].lerp(self.gun['end'], bgeutils.smoothstep(self.display_cycle))
+                self.gun['gun'].localTransform = self.gun['start'].lerp(self.gun['end'],
+                                                                        bgeutils.smoothstep(self.display_cycle))
 
     def game_update(self):
         self.movement_action()
