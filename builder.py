@@ -11,8 +11,6 @@ import model_display
 import json
 
 
-
-
 class BaseBuilder(object):
     def __init__(self, manager):
         self.manager = manager

@@ -40,45 +40,6 @@ class Tile(object):
         self.rotated = False
 
 
-class VehicleRepresentation(object):
-    def __init__(self, vehicle_stats):
-        pass
-
-
-class VehicleDisplay(object):
-    def __init__(self, manager, parent, turret):
-        self.manager = manager
-        self.parent = parent
-
-        self.vehicle_stats = self.manager.vehicle_stats
-
-        display_window = "vehicle_display_box"
-
-        if turret:
-            display_window = "vehicle_display_box_t"
-
-        self.display_window = self.parent.scene.addObject(display_window, parent, 0)
-        self.vehicle_representation = VehicleRepresentation(self.vehicle_stats)
-
-        sections = ["FRONT", "LEFT", "RIGHT", "BACK", "TURRET"]
-
-        for section in sections:
-            display_text = bgeutils.get_ob(section, self.display_window.children)
-            if display_text:
-                current_section = self.vehicle_stats['sections'][section]
-
-                components = [str(int(current_section["durability"])).zfill(2), str(int(current_section["rating"])).zfill(2), str(int(current_section["top"])).zfill(2)]
-
-                text_string = "{}:{}/{}/{}".format(section, *components)
-                display_text['Text'] = text_string
-
-    def update(self):
-        pass
-
-    def end_button(self):
-        self.display_window.endObject()
-
-
 class Button(object):
     def __init__(self, manager, button_size, name, label_text, location, part_key=None, color=None, mouse_over=None,
                  text_box=False, scale=1.0, text_entry=False):
