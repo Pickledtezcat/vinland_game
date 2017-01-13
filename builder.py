@@ -167,7 +167,7 @@ class SaveMode(BaseBuilder):
     def place_buttons(self):
         self.clean_buttons()
 
-        controls = [["save_name", "Click_to_enter_save_name_here.", True], ["save", "Confirm_save.", False],
+        controls = [["save name", "Click_to_enter_save_name_here.", True], ["save", "Confirm_save.", False],
                     ["cancel", "Go_back_to_builder.", False]]
 
         positions = [(0, 0), (-0.5, -1.0), (0.5, -1.0)]
@@ -501,9 +501,9 @@ class DebugBuilderMode(BaseBuilder):
         location = self.chassis_buttons.worldPosition.copy()
 
         chassis_info = self.chassis_dict[self.chassis_size]
-        chassis_name = chassis_info["name"]
+        chassis_name = bgeutils.add_spaces(chassis_info["name"])
         turret_info = self.turret_dict[self.turret_size]
-        turret_name = turret_info["name"].upper()
+        turret_name = bgeutils.add_spaces(turret_info["name"].upper())
 
         chassis_controls = [["chassis_smaller", "<<", "small_button", "Set_chassis_size_smaller."],
                             ["chassis_reset", chassis_name, "medium_button", None],
@@ -540,9 +540,9 @@ class DebugBuilderMode(BaseBuilder):
         if self.manager.game_turn == 48:
             self.year += "!"
 
-        faction_name = "faction:_{}".format(self.faction_label)
+        faction_name = "faction: {}".format(self.faction_label)
         game_turn = "turn:_{}".format(self.manager.game_turn)
-        year = "year:_{}".format(self.year)
+        year = "year: {}".format(self.year)
 
         faction_controls = [["faction_less", "<<", "small_button", "Change_faction."],
                             ["faction_name", faction_name, "medium_button", None],
@@ -1508,9 +1508,7 @@ class DebugBuilderMode(BaseBuilder):
                       "Armor_sections_weigh_more_or_less_depending",
                       "on_the_chassis_and_turret_size."]
 
-
         mouse_help = bgeutils.add_spaces("\n".join(help_lines))
-
         location = self.info_text.worldPosition.copy()
 
         button = buildutils.Button(self, "large_text_box", "stat", label, location, mouse_over=mouse_help, text_box=True,

@@ -14,9 +14,17 @@ class VehicleWeapon(object):
         parts_dict = vehicle_parts.get_vehicle_parts()
         part= parts_dict[self.part_number]
 
+        self.rate_of_fire = 0
+        self.emitter = None
 
+    def set_rate_of_fire(self, manpower):
+        self.rate_of_fire = manpower
 
+    def set_emitter(self, emitter):
+        self.emitter = emitter
 
+    def update(self):
+        pass
 
 
 class VehicleStats(object):
@@ -29,10 +37,8 @@ class VehicleStats(object):
 
         self.faction_number = faction_number
 
-        self.on_road_speed = 0
-        self.off_road_speed = 0
-        self.on_road_handling = 0
-        self.off_road_handling = 0
+        self.speed = []
+        self.handling = []
         self.reverse_speed_mod = 0
 
         self.drive_type = "WHEELED"
@@ -56,6 +62,9 @@ class VehicleStats(object):
         self.crits = dict(TURRET=[], FRONT=[], FLANKS=[])
         self.weapons = []
         self.durability = 0
+        self.armored = False
+        self.open_top = False
+        self.open_turret = False
 
         self.artillery = False
         self.invalid = []
@@ -73,9 +82,12 @@ class VehicleStats(object):
                 part = self.contents[tile.parent_tile].part
                 location = tile.location
                 weapon_location = tile.weapon_location
+                part_type = part.get("part_type", None)
 
                 parts[tile.parent_tile] = {"part": part, "location": location, "weapon_location": weapon_location}
-                self.flags = bgeutils.add_entry(part['flags'], self.flags)
+
+                if part_type != "weapon":
+                    self.flags = bgeutils.add_entry(part['flags'], self.flags)
 
         if "GUN_CARRIAGE" in self.flags:
             self.build_artillery(parts)
@@ -92,7 +104,7 @@ class VehicleStats(object):
         suspension = 0
         fuel = 0.0
         ammo = 0.0
-        armor_coverage = False
+        vision_distance = 1
 
         sorted_parts = sorted(parts, key=lambda my_key: parts[my_key].get("rating", 0))
 
@@ -182,12 +194,110 @@ class VehicleStats(object):
             if part_type == "weapon":
                 self.ammo += 0.5
 
-                # TODO add weapon object here
-                self.weapons.append(part)
+                weapon = VehicleWeapon(part_number, location, weapon_location)
+                self.weapons.append(weapon)
 
-        for section in section_dict:
-            pass
+        for section_key in section_dict:
+            section = section_dict[section_key]
+            self.armor[section_key] = section["armor"]
+            if section["armor"] > 0 or "ARMORED_CHASSIS" in self.flags:
+                self.armored = True
 
+            section_weapons = [w for w in self.weapons if w.section == section_key]
+
+            manpower = section['manpower']
+            section_manpower = manpower / len(section_weapons)
+
+            for weapon in self.weapons:
+                if weapon.section == section_key:
+                    weapon.set_rate_of_fire(section_manpower)
+
+        self.get_movement(suspension, engine_handling)
+        self.get_vision()
+
+    def get_movement(self, suspension, engine_handling):
+
+        suspension_dict = vehicle_parts.suspension_dict
+        drive_dict = vehicle_parts.drive_dict
+        power_to_weight = round((self.engine_rating * 50) / self.weight, 1)
+
+        drive_mods = drive_dict[self.drive_type]
+        suspension_mods = suspension_dict[self.suspension_type]
+
+        stability = suspension_mods["stability"] + drive_mods["stability"]
+        on_road_handling = suspension_mods["handling"][0] + drive_mods["handling"][
+            0] + engine_handling
+        off_road_handling = suspension_mods["handling"][1] + drive_mods["handling"][
+            1] + engine_handling
+
+        tonnage_mod = int(self.weight * 0.1)
+
+        on_road_handling -= tonnage_mod
+        off_road_handling -= tonnage_mod
+
+        on_road_speed = min(99, (power_to_weight * suspension_mods["on_road"]) * drive_mods["on_road"])
+        off_road_speed = min(50, (power_to_weight * suspension_mods["off_road"]) * drive_mods["off_road"])
+
+        if suspension < self.weight:
+            if suspension <= 0:
+                weight_scale = 0.0
+            else:
+                weight_scale = suspension / self.weight
+
+            on_road_speed = int(on_road_speed * weight_scale)
+            off_road_speed = int(off_road_speed * weight_scale)
+            on_road_handling = int(on_road_handling * weight_scale)
+            off_road_handling = int(off_road_handling * weight_scale)
+
+        on_road_handling = max(1, on_road_handling)
+        off_road_handling = max(1, off_road_handling)
+
+        self.stability = stability
+        self.handling = [on_road_handling, off_road_handling]
+        self.speed = [on_road_speed, off_road_speed]
+
+    def get_vision(self):
+
+        vision_distance = 1
+        good_vision = False
+        great_vision = False
+
+        if "OPEN_TOP" in self.flags:
+            good_vision = True
+            self.open_top = True
+
+        if "OPEN_TURRET" in self.flags:
+            great_vision = True
+            self.open_turret = True
+
+        if self.turret_size > 0:
+            good_vision = True
+
+        if "COMMANDER" in self.flags:
+            if self.turret_size > 0:
+                great_vision = True
+            else:
+                good_vision = True
+
+        if "COMMANDERS_CUPOLA" in self.flags:
+            if self.turret_size > 0:
+                great_vision = True
+            else:
+                good_vision = True
+
+        if not self.armored:
+            vision_distance += 1
+
+        if great_vision:
+            vision_distance += 2
+
+        elif good_vision:
+            vision_distance += 1
+
+        if "NIGHT_VISION_CUPOLA" in self.flags:
+            vision_distance += 1
+
+        self.vision_distance = vision_distance
 
     def build_artillery(self, parts):
         pass
