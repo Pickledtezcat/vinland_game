@@ -117,7 +117,7 @@ class MovementMarker(object):
 class GameLoop(object):
     def __init__(self, cont):
         self.debug = False
-        self.console = False
+        self.console = True
         self.cont = cont
         self.own = cont.owner
         self.scene = cont.owner.scene

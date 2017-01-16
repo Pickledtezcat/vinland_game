@@ -13,7 +13,6 @@ class VehicleTrails(object):
         self.timer = 0.0
 
         self.adders = bgeutils.get_ob_list("trail", self.agent.display_object.vehicle.childrenRecursive)
-        self.number = len(self.adders)
         self.tracks = []
 
     def end_tracks(self):
@@ -31,7 +30,7 @@ class VehicleTrails(object):
 
         if self.agent.off_road:
 
-            if self.number > 0:
+            if self.adders:
                 if self.timer >= 1.0:
                     self.timer = 0.0
                     for adder in self.adders:
@@ -51,6 +50,7 @@ class AgentAnimation(object):
 
         self.start_hit = None
         self.end_hit = None
+        self.last_hit = None
 
         self.recoil = mathutils.Vector([0.0, 0.0, 0.0])
         self.tilt = 0.0
@@ -83,9 +83,12 @@ class AgentAnimation(object):
 
         if self.vehicle:
             if self.agent.on_screen and target:
-                self.trails.add_tracks(self.start_hit.normal)
+                if self.last_hit != self.start_hit:
+                    self.trails.add_tracks(self.start_hit.normal)
             else:
                 self.trails.end_tracks()
+
+        self.last_hit = self.start_hit
 
     def update(self):
 
