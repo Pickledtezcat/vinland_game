@@ -199,18 +199,12 @@ class GameLoop(object):
         for i in range(2):
             agents.VehicleAgent(self, (180, 120 + (i * 10)), "primitive-tank", 0)
 
-        #agents.VehicleAgent(self, (80, 130), "old tank", 1)
-
         squads = ["mg", "squad", "officer", "engineer", "squad", "anti-tank"]
 
         for i in range(5):
             agents.InfantrySquad(self, (150, 90 + (i * 10)), squads[i], 0)
 
-        agents.Artillery(self, (80, 130), "light gun", 0)
-        agents.Artillery(self, (80, 137), "80mm mortar", 0)
-        agents.Artillery(self, (80, 143), "heavy mg", 0)
-        agents.Artillery(self, (80, 155), "heavy antitank", 0)
-        agents.Artillery(self, (80, 170), "heavy artillery", 0)
+        #agents.Artillery(self, (80, 130), "light gun", 0)
 
         agents.InfantrySquad(self, (180, 90), "squad", 1)
 

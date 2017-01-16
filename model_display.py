@@ -5,7 +5,7 @@ import vehicle_parts
 
 
 class VehicleModel(object):
-    def __init__(self, adder, stats, owner=None, scale=1.0, cammo=0):
+    def __init__(self, adder, stats, owner=None, scale=1.0, cammo=0, faction_icon=None):
 
         self.adder = adder
         self.scene = self.adder.scene
@@ -21,7 +21,10 @@ class VehicleModel(object):
                          5: 5,
                          6: 4}
 
-        icon = faction_icons[self.stats["faction_number"]]
+        if not faction_icon:
+            icon = faction_icons[self.stats.faction_number]
+        else:
+            icon = faction_icons[faction_icon]
 
         color = [icon * 0.25, 0.0, cammo * 0.125, 1.0]
 
@@ -30,30 +33,32 @@ class VehicleModel(object):
 
         factions = {0: [2, 5], 1: [1, 4], 2: [3, 6]}
 
-        drive_number = drive_display[self.stats["drive"]]
+        drive_number = drive_display[self.stats.drive]
 
-        chassis_size = self.stats["chassis_size"] - 1
-        turret_size = self.stats["turret_size"] - 1
+        chassis_size = self.stats.chassis_size - 1
+        turret_size = self.stats.turret_size - 1
 
         speed = "A"
 
         if drive_number == 2:
-            if self.stats["suspension"] in fast:
+            if self.stats.suspension_type in fast:
                 speed = "B"
 
         faction_number = 0
         gun_faction = 0
 
-        if "AMPHIBIOUS" in self.stats["flags"]:
+        if "AMPHIBIOUS" in self.stats.flags:
             faction_number = 3
             speed = "A"
 
         else:
             for faction_key in factions:
                 faction_list = factions[faction_key]
-                if self.stats["faction_number"] in faction_list:
+                if self.stats.faction_number in faction_list:
                     faction_number = faction_key
                     gun_faction = faction_key
+
+        # TODO finish converting stats from dict to object
 
         layout = 0
         weapon_list = [len(self.stats["weapons"][location_key]) for location_key in self.stats["weapons"]]

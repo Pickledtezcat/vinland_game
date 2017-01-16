@@ -46,7 +46,7 @@ class AgentAnimation(object):
         self.vehicle = vehicle
 
         if self.vehicle:
-            self.trails = VehicleTrails(self.agent, (self.agent.stats["chassis_size"] + 1.0) * 0.5)
+            self.trails = VehicleTrails(self.agent, (self.agent.stats.chassis_size + 1.0) * 0.5)
 
         self.start_hit = None
         self.end_hit = None
@@ -835,7 +835,7 @@ class VehicleCombatControl(CombatControl):
     def __init__(self, agent):
         super().__init__(agent)
 
-        if self.agent.stats["turret_size"] > 0:
+        if self.agent.stats.turret_size > 0:
             self.turret = self.agent.display_object.turret
             self.turret_control = None
 

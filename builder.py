@@ -4,6 +4,7 @@ import bgeutils
 import random
 import game_input
 import vehicle_parts
+import vehicle_stats
 import mathutils
 import math
 
@@ -25,12 +26,12 @@ class BaseBuilder(object):
             self.contents = self.manager.contents
             self.chassis_size = self.manager.chassis_size
             self.turret_size = self.manager.turret_size
-            self.vehicle_stats = self.manager.vehicle_stats
+            self.stats = self.manager.stats
         else:
             self.contents = {}
             self.chassis_size = 1
             self.turret_size = 0
-            self.vehicle_stats = None
+            self.stats = None
 
         self.mode_change = None
         self.left_button = False
@@ -66,14 +67,14 @@ class BaseBuilder(object):
 
         tech_levels = vehicle_parts.tech_levels[self.manager.faction]
         tech_level_dict = {tech_key: get_level(tech_levels[tech_key], self.manager.game_turn) for tech_key in
-                                tech_levels}
+                           tech_levels}
 
         return tech_level_dict
 
     def preserve_contents(self):
 
         self.manager.contents = self.contents
-        self.manager.vehicle_stats = self.vehicle_stats
+        self.manager.stats = self.stats
         self.manager.chassis_size = self.chassis_size
         self.manager.turret_size = self.turret_size
 
@@ -224,21 +225,13 @@ class SaveMode(BaseBuilder):
             owner = button_hit[0]["button_owner"]
             if owner.name == "save":
                 if self.left_button:
-                    in_path = bgeutils.bge.logic.expandPath("//vehicles/saved_vehicles.txt")
 
+                    in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
                     try:
                         with open(in_path, "r") as infile:
                             vehicle_dict = json.load(infile)
                     except:
                         vehicle_dict = {}
-
-                    current_contents = {"{}&{}".format(key[0], key[1]): self.manager.contents[key].__dict__ for key in
-                                        self.manager.contents}
-                    current_stats = self.manager.vehicle_stats
-
-                    new_vehicle = {"name": self.vehicle_name_box.text_contents,
-                                   "stats": current_stats,
-                                   "contents": current_contents}
 
                     save_name = self.vehicle_name_box.text_contents.lower()
 
@@ -246,7 +239,7 @@ class SaveMode(BaseBuilder):
                         message_text = self.scene.addObject("text_object", self.option_buttons, 240)
                         message_text.worldPosition.y -= 4.0
                         message_text.localScale *= 0.2
-                        message_text["Text"] = "That_name_is_already_in_use."
+                        message_text["Text"] = "That name is already in_use."
                         message_text.color = [1.0, 0.0, 0.0, 1.0]
                         self.refresh_controls = True
 
@@ -257,19 +250,14 @@ class SaveMode(BaseBuilder):
                         message_text["Text"] = "saved."
                         message_text.color = [0.0, 1.0, 0.0, 1.0]
 
-                        vehicle_dict[save_name] = new_vehicle
-
-                        out_path = bgeutils.bge.logic.expandPath("//vehicles/saved_vehicles.txt")
-                        with open(out_path, "w") as outfile:
-                            json.dump(vehicle_dict, outfile)
-
-                            # bge.logic.endGame()
+                        vehicle_stats.save_vehicle(vehicle_dict, self.manager.chassis_size, self.manager.turret_size,
+                                                   self.manager.contents, save_name)
 
             elif owner.name == "cancel":
                 if self.left_button:
                     self.mode_change = "DebugVehicleBuilder"
 
-            elif owner.name == "save_name":
+            elif owner.name == "save name":
                 if self.left_button:
                     owner.clicked = True
 
@@ -431,7 +419,7 @@ class DebugBuilderMode(BaseBuilder):
         self.vehicle_tiles = []
         self.cursor_display = []
 
-        self.vehicle_stats = {}
+        self.stats = {}
 
         self.refresh_all = True
         self.refresh_buttons = False
@@ -529,7 +517,8 @@ class DebugBuilderMode(BaseBuilder):
             if not mouse_help:
                 text_box = True
 
-            button = buildutils.Button(self, button_type, name, label, location, mouse_over=mouse_help, text_box=text_box,
+            button = buildutils.Button(self, button_type, name, label, location, mouse_over=mouse_help,
+                                       text_box=text_box,
                                        scale=0.75)
             location.x += 1.0
 
@@ -571,7 +560,8 @@ class DebugBuilderMode(BaseBuilder):
             if not mouse_help:
                 text_box = True
 
-            button = buildutils.Button(self, button_type, name, label, location, mouse_over=mouse_help, text_box=text_box,
+            button = buildutils.Button(self, button_type, name, label, location, mouse_over=mouse_help,
+                                       text_box=text_box,
                                        scale=0.75)
             location.x += 1.0
 
@@ -579,19 +569,19 @@ class DebugBuilderMode(BaseBuilder):
 
         location = self.cammo_buttons.worldPosition.copy()
 
-        camo_text = buildutils.Button(self, "round_button", "cam_text_box", "camouflage:", location, mouse_over="", text_box=True,
+        camo_text = buildutils.Button(self, "round_button", "cam_text_box", "camouflage:", location, mouse_over="",
+                                      text_box=True,
                                       scale=0.65)
         self.controls.append(camo_text)
         location.x += 0.5
 
         for c in range(0, 15):
-
             cammo = self.cammo_dict[str(c)]
 
             location.x += 0.35
 
             cammo_name = "cammo_{}".format(c)
-            cammo_label = "{0: ^4}".format(c +1)
+            cammo_label = "{0: ^4}".format(c + 1)
             camo_button = buildutils.Button(self, "white_button", cammo_name, cammo_label, location,
                                             mouse_over="Set_display_camouflage.",
                                             scale=0.45, color=cammo)
@@ -612,7 +602,8 @@ class DebugBuilderMode(BaseBuilder):
             if item_type == self.item_type:
                 text_box = True
 
-            button = buildutils.Button(self, "round_button", item_type, label, location, color=button_color, mouse_over=mouse_help,
+            button = buildutils.Button(self, "round_button", item_type, label, location, color=button_color,
+                                       mouse_over=mouse_help,
                                        scale=0.85, text_box=text_box)
             location.y -= 0.75
 
@@ -827,16 +818,16 @@ class DebugBuilderMode(BaseBuilder):
                         line.localScale.x = target_vector.length
                         self.vehicle_tiles.append(line)
 
-        if self.vehicle_stats:
+        if self.stats:
 
-            if "GUN_CARRIAGE" in self.vehicle_stats['flags']:
-                self.vehicle_display = model_display.ArtilleryModel(self.model_display, self.vehicle_stats, scale=0.30,
-                                                                  cammo=self.cammo)
+            if "GUN_CARRIAGE" in self.stats.flags:
+                self.vehicle_display = model_display.ArtilleryModel(self.model_display, self.stats, scale=0.30,
+                                                                    cammo=self.cammo)
 
             else:
 
-                self.vehicle_display = model_display.VehicleModel(self.model_display, self.vehicle_stats, scale=0.30,
-                                                              cammo=self.cammo)
+                self.vehicle_display = model_display.VehicleModel(self.model_display, self.stats, scale=0.30,
+                                                                  cammo=self.cammo)
 
     def clean_tiles(self):
 
@@ -980,7 +971,8 @@ class DebugBuilderMode(BaseBuilder):
                                         can_add = False
 
                     if can_add:
-                        self.manager.audio.sound_effect("work{}".format(random.randint(1,8)), self.own, attenuation=0.6)
+                        self.manager.audio.sound_effect("work{}".format(random.randint(1, 8)), self.own,
+                                                        attenuation=0.6)
 
                         for container in containers:
                             self.contents[container].part = self.selected_part
@@ -1092,7 +1084,7 @@ class DebugBuilderMode(BaseBuilder):
                         if owner.name in items:
                             self.item_type = owner.name
                             self.refresh_all = True
-                            #self.refresh_buttons = True
+                            # self.refresh_buttons = True
 
                         if owner.name == "chassis_smaller":
                             self.chassis_size = max(1, self.chassis_size - 1)
@@ -1158,346 +1150,77 @@ class DebugBuilderMode(BaseBuilder):
     def generate_stats(self):
 
         self.clean_info_buttons()
-
-        self.vehicle_stats = {}
-
-        chassis = self.chassis_dict[self.chassis_size]
-        turret = self.turret_dict[self.turret_size]
-
-        tank_parts = {}
-
-        for content_key in self.contents:
-            contents = self.contents[content_key]
-
-            if contents.parent_tile == content_key:
-                tank_parts[contents.parent_tile] = {"part": self.contents[contents.parent_tile].part,
-                                                    "location": contents.location}
-
-        tons = 0
-
-        flags = []
-        engine_rating = 0
-        suspension = 0
-        drive_type = "WHEELED"
-        suspension_type = "UNSPRUNG"
-        fuel = 0.0
-        ammo = 0.0
-        stores = 0
-        cost = 0
-        engine_handling = []
-        open_top = False
-        open_turret = False
-        vision_distance = 1
-        turret_speed = 0.0
-
-        section_dict = dict(
-            TURRET={"rating": 0.0, "max": 100, "durability": 0, "crits": [], "manpower": 0,
-                    "crew": 0},
-            FRONT={"rating": 0.0, "max": 100, "durability": 0, "crits": [], "manpower": 0,
-                   "crew": 0},
-            FLANKS={"rating": 0.0, "max": 100, "durability": 0, "crits": [], "manpower": 0,
-                  "crew": 0},)
-
-        weapons_dict = dict(TURRET=[], FRONT=[], LEFT=[], RIGHT=[], BACK=[])
-        sorted_keys = sorted(tank_parts, key=lambda my_key: tank_parts[my_key].get("rating", 0))
-
-        sections = ["FRONT", "FLANKS", "TURRET"]
-        armor_coverage = False
-
-        for section in sections:
-
-            for part_key in sorted_keys:
-                location = tank_parts[part_key]["location"]
-                if location == section:
-
-                    section_stats = section_dict[location]
-                    part_number = tank_parts[part_key]["part"]
-                    part = self.parts_dict[part_number]
-
-                    crit = part.get("critical")
-                    flag = part.get("flags")
-                    rating = part.get("rating", 0)
-                    part_type = part.get("part_type", 0)
-                    durability = part.get("durability", 0)
-                    level = part.get("level", 0)
-
-                    weight = part.get("weight", 0)
-                    cost += (5 + level) * 100
-                    section_stats["durability"] += durability
-
-                    for c in range(max(1, int(weight))):
-                        section_dict[location]["crits"].append(crit)
-
-                    if part_type != "weapon":
-                        flags = bgeutils.add_entry(flag, flags)
-
-                    if part_type == "design":
-                        drive_types = ["WHEELED", "HALFTRACK", "TRACKED"]
-                        if flag in drive_types:
-                            suspension += rating
-                            drive_type = flag
-
-                    if part_type == "crew":
-                        tons += (weight * 0.5)
-                        section_stats["manpower"] += rating
-                        section_stats["crew"] += 1
-
-                    elif part_type == "armor":
-                        if location == "TURRET":
-                            armor_scale = turret["armor_scale"]
-                        else:
-                            armor_scale = chassis["armor_scale"]
-
-                        if section_stats["rating"] < 1:
-                            section_stats["rating"] += rating
-                        else:
-                            section_stats["rating"] += rating * 0.5
-
-                        weight *= armor_scale
-
-                        tons += weight
-                        max_thickness = 20
-
-                        if section_stats["max"] > max_thickness:
-                            section_stats["max"] = max_thickness
-
-                        spalling = ["CAST", "RIVETED", "THIN"]
-
-                        if flag in spalling:
-                            flags = bgeutils.add_entry("SPALLING", flags)
-
-                    else:
-                        tons += weight
-                        if part_type == "engine":
-
-                            if engine_rating == 0:
-                                fuel += 0.5
-                                engine_rating += rating
-                                engine_handling.append(int(rating * 0.5))
-                            else:
-                                engine_rating += rating * 0.5
-
-                        if part_type == "suspension":
-
-                            suspension_type = flag
-
-                            if suspension_type == flag:
-                                suspension += rating
-
-                        if part_type == "weapon":
-                            ammo += 0.5
-                            weapon_location = section
-
-                            if section == "FLANKS":
-                                if part_key[1] < 1:
-                                    weapon_location = "BACK"
-                                elif part_key[0] >= (chassis["x"] * 0.5):
-                                    weapon_location = "RIGHT"
-                                else:
-                                    weapon_location = "LEFT"
-
-                            weapons_dict[weapon_location].append(part)
-
-                    section_dict[location] = section_stats
-
-                    if flag == "STORES":
-                        stores += rating
-
-                    if flag == "FUEL":
-                        fuel += 1.0
-
-                    if flag == "AMMO":
-                        ammo += 1.0
-
-            for armor_key in section_dict:
-                armor_section = section_dict[armor_key]
-
-                # retain for level 6 tech
-                # if "COMPACT" in flags:
-                #     armor_section["rating"] = round(armor_section["rating"] * 1.5)
-                # else:
-                #     armor_section["rating"] = round(armor_section["rating"])
-
-                if armor_section["rating"] > armor_section["max"]:
-                    armor_section["rating"] = armor_section["max"]
-                else:
-                    armor_section["rating"] = int(armor_section["rating"])
-
-                if armor_section["rating"] > 0.0:
-                    armor_coverage = True
-
-                section_dict[armor_key] = armor_section
-
-            if armor_coverage or "ARMORED_CHASSIS" in flags:
-                self.vehicle_stats["armored"] = True
-            else:
-                self.vehicle_stats["armored"] = False
-
-        good_vision = False
-        great_vision = False
-
-        if "OPEN_TOP" in flags:
-            good_vision = True
-            open_top = True
-
-        if "OPEN_TURRET" in flags:
-            great_vision = True
-            open_turret = True
-
-        if self.turret_size > 0:
-            good_vision = True
-
-        if "COMMANDER" in flags:
-            if self.turret_size > 0:
-                great_vision = True
-            else:
-                good_vision = True
-
-        if "COMMANDERS_CUPOLA" in flags:
-            if self.turret_size > 0:
-                great_vision = True
-            else:
-                good_vision = True
-
-        if not self.vehicle_stats["armored"]:
-            vision_distance += 1
-
-        if great_vision:
-            vision_distance += 2
-
-        elif good_vision:
-            vision_distance += 1
-
-        if "NIGHT_VISION_CUPOLA" in flags:
-            vision_distance += 1
-
-        engine_handling = sorted(engine_handling).reverse()
-        if engine_handling:
-            engine_handling = engine_handling[0]
-        else:
-            engine_handling = 0
-
-        self.vehicle_stats["faction_number"] = self.manager.faction
-        self.vehicle_stats["faction_name"] = self.faction_label
-        self.vehicle_stats["chassis_size"] = self.chassis_size
-        self.vehicle_stats["turret_size"] = self.turret_size
-        self.vehicle_stats["sections"] = section_dict
-        self.vehicle_stats["weapons"] = weapons_dict
-        self.vehicle_stats["flags"] = flags
-        self.vehicle_stats["cost"] = cost
-        self.vehicle_stats["suspension_rating"] = suspension
-        self.vehicle_stats["suspension"] = suspension_type
-        self.vehicle_stats["drive"] = drive_type
-        self.vehicle_stats["suspension_type"] = "{}_{}".format(drive_type, suspension_type)
-        self.vehicle_stats["engine_rating"] = engine_rating
-        self.vehicle_stats["fuel"] = fuel
-        self.vehicle_stats["ammo"] = ammo
-        self.vehicle_stats["stores"] = stores
-        self.vehicle_stats["tons"] = max(1, tons)
-        self.vehicle_stats["total_crew"] = sum([section_dict[location]["crew"] for location in section_dict])
-        self.vehicle_stats["armor_scale"] = sum([section_dict[section]["rating"] for section in section_dict]) / \
-                                            self.vehicle_stats["tons"]
-        self.vehicle_stats["open_top"] = open_top
-        self.vehicle_stats["open_turret"] = open_turret
-        self.vehicle_stats["vision_distance"] = vision_distance
-
-        power_to_weight = round((self.vehicle_stats["engine_rating"] * 50) / self.vehicle_stats["tons"], 1)
-        drive_mods = self.drive_dict[drive_type]
-        suspension_mods = self.suspension_dict[suspension_type]
-
-        self.vehicle_stats["stability"] = suspension_mods["stability"] + drive_mods["stability"]
-        self.vehicle_stats["on_road_handling"] = suspension_mods["handling"][0] + drive_mods["handling"][0] + engine_handling
-        self.vehicle_stats["off_road_handling"] = suspension_mods["handling"][1] + drive_mods["handling"][1] + engine_handling
-
-        tonnage_mod = int(self.vehicle_stats["tons"] * 0.1)
-        self.vehicle_stats["on_road_handling"] -= tonnage_mod
-        self.vehicle_stats["off_road_handling"] -= tonnage_mod
-
-        on_road = min(99, (power_to_weight * suspension_mods["on_road"]) * drive_mods["on_road"])
-        off_road = min(50, (power_to_weight * suspension_mods["off_road"]) * drive_mods["off_road"])
-
-        self.vehicle_stats["on_road"] = int(on_road)
-        self.vehicle_stats["off_road"] = int(off_road)
-
-        if self.vehicle_stats["suspension_rating"] < self.vehicle_stats["tons"]:
-            if self.vehicle_stats["suspension_rating"] <= 0:
-                weight_scale = 0.0
-            else:
-                weight_scale = self.vehicle_stats["suspension_rating"] / self.vehicle_stats["tons"]
-
-            self.vehicle_stats["on_road"] = int(on_road * weight_scale)
-            self.vehicle_stats["off_road"] = int(off_road * weight_scale)
-            self.vehicle_stats["on_road_handling"] = int(self.vehicle_stats["on_road_handling"] * weight_scale)
-            self.vehicle_stats["off_road_handling"] = int(self.vehicle_stats["off_road_handling"] * weight_scale)
-
-        self.vehicle_stats["on_road_handling"] = max(1, self.vehicle_stats["on_road_handling"])
-        self.vehicle_stats["off_road_handling"] = max(1, self.vehicle_stats["off_road_handling"])
-
-        stat_1_categories = ["tons", "cost", "stability", "total_crew", "suspension_type", "suspension_rating", "engine_rating"]
-        stat_1_string = ""
-
-        for category in stat_1_categories:
-            entry = self.vehicle_stats[category]
-            try:
-                entry = round(entry, 1)
-            except:
-                entry = entry
-
-            if category == "suspension_type":
-                stat_1_string = "{}{:<18}\n{:>21}\n".format(stat_1_string, category + ":", str(entry))
-            else:
-                stat_1_string = "{}{:<18}{:>3}\n".format(stat_1_string, category + ":", str(entry))
-
-        stat_2_categories = ["on_road_handling", "off_road_handling", "on_road", "off_road", "fuel", "stores", "vision_distance"]
-        stat_2_string = ""
-
-        for category in stat_2_categories:
-            entry = self.vehicle_stats[category]
-            try:
-                entry = round(entry, 1)
-            except:
-                entry = entry
-
-            stat_2_string = "{}{:<18}{:>3}\n".format(stat_2_string, category + ":", entry)
-
-        ### armor display
-
-        if self.turret_size:
-            locations = ["FRONT", "FLANKS", "TURRET"]
-        else:
-            locations = ["FRONT", "FLANKS"]
-
-        armor_string = "{:>21}".format("CP_-_HP_-_AP:")
-        crit_string = ""
-
-        for location in locations:
-            current_section = self.vehicle_stats["sections"][location]
-
-            if self.vehicle_stats["armored"]:
-                armor_rating = str(int(current_section["rating"])).zfill(2)
-            else:
-                armor_rating = "-"
-
-            max_warning = ""
-            if current_section["rating"] == current_section["max"]:
-                max_warning = "*"
-
-            components = [str(int(current_section["manpower"])).zfill(2),
-                          str(int(current_section["durability"])).zfill(2),
-                          armor_rating, max_warning]
-
-            hp_string = "{:<8}{} - {} - {}{}".format(location + ":", *components)
-            armor_string = "{}\n{}".format(armor_string, hp_string)
-
-            added_crits = []
-            for crit_entry in self.vehicle_stats["sections"][location]["crits"]:
-                if crit_entry[:1] not in added_crits and crit_entry != "CHASSIS":
-                    added_crits.append(crit_entry[:1])
-
-            crits = "/".join(added_crits)
-            crit_string = "{}\n{}{}".format(crit_string, location + "_CRITS:_", crits)
-
-        label = bgeutils.add_spaces("".join([stat_1_string, stat_2_string, armor_string, crit_string]))
+        self.stats = {}
+        self.vehicle_stats = vehicle_stats.VehicleStats(self.chassis_size, self.turret_size, self.contents, self.manager.faction)
+
+
+        # stat_1_categories = ["tons", "cost", "stability", "total_crew", "suspension_type", "suspension_rating",
+        #                      "engine_rating"]
+        # stat_1_string = ""
+        #
+        # for category in stat_1_categories:
+        #     entry = self.vehicle_stats[category]
+        #     try:
+        #         entry = round(entry, 1)
+        #     except:
+        #         entry = entry
+        #
+        #     if category == "suspension_type":
+        #         stat_1_string = "{}{:<18}\n{:>21}\n".format(stat_1_string, category + ":", str(entry))
+        #     else:
+        #         stat_1_string = "{}{:<18}{:>3}\n".format(stat_1_string, category + ":", str(entry))
+        #
+        # stat_2_categories = ["on_road_handling", "off_road_handling", "on_road", "off_road", "fuel", "stores",
+        #                      "vision_distance"]
+        # stat_2_string = ""
+        #
+        # for category in stat_2_categories:
+        #     entry = self.vehicle_stats[category]
+        #     try:
+        #         entry = round(entry, 1)
+        #     except:
+        #         entry = entry
+        #
+        #     stat_2_string = "{}{:<18}{:>3}\n".format(stat_2_string, category + ":", entry)
+        #
+        # ### armor display
+        #
+        # if self.turret_size:
+        #     locations = ["FRONT", "FLANKS", "TURRET"]
+        # else:
+        #     locations = ["FRONT", "FLANKS"]
+        #
+        # armor_string = "{:>21}".format("CP_-_HP_-_AP:")
+        # crit_string = ""
+        #
+        # for location in locations:
+        #     current_section = self.vehicle_stats["sections"][location]
+        #
+        #     if self.vehicle_stats["armored"]:
+        #         armor_rating = str(int(current_section["rating"])).zfill(2)
+        #     else:
+        #         armor_rating = "-"
+        #
+        #     max_warning = ""
+        #     if current_section["rating"] == current_section["max"]:
+        #         max_warning = "*"
+        #
+        #     components = [str(int(current_section["manpower"])).zfill(2),
+        #                   str(int(current_section["durability"])).zfill(2),
+        #                   armor_rating, max_warning]
+        #
+        #     hp_string = "{:<8}{} - {} - {}{}".format(location + ":", *components)
+        #     armor_string = "{}\n{}".format(armor_string, hp_string)
+        #
+        #     added_crits = []
+        #     for crit_entry in self.vehicle_stats["sections"][location]["crits"]:
+        #         if crit_entry[:1] not in added_crits and crit_entry != "CHASSIS":
+        #             added_crits.append(crit_entry[:1])
+        #
+        #     crits = "/".join(added_crits)
+        #     crit_string = "{}\n{}{}".format(crit_string, location + "_CRITS:_", crits)
+
+        label = "" #bgeutils.add_spaces("".join([stat_1_string, stat_2_string, armor_string, crit_string]))
         help_lines = ["Vehicle_statistics:", "Suspension_rating_should_exceed_tonnage.",
                       "Each_engine_or_armor_section_above_1_adds", "only_50_percent_to_rating.",
                       "CP=_Crew_points,_affects_reload_speed",
@@ -1511,7 +1234,8 @@ class DebugBuilderMode(BaseBuilder):
         mouse_help = bgeutils.add_spaces("\n".join(help_lines))
         location = self.info_text.worldPosition.copy()
 
-        button = buildutils.Button(self, "large_text_box", "stat", label, location, mouse_over=mouse_help, text_box=True,
+        button = buildutils.Button(self, "large_text_box", "stat", label, location, mouse_over=mouse_help,
+                                   text_box=True,
                                    scale=1.0)
         self.info_buttons.append(button)
 
@@ -1554,14 +1278,14 @@ class DebugBuilderMode(BaseBuilder):
                     else:
                         weapon_location = "LEFT"
 
-                self.contents[chassis_key] = buildutils.Tile(x, y, location, weapon_location)
+                self.contents[chassis_key] = vehicle_stats.VehicleTile(x, y, location, weapon_location)
 
         turret_padding_x = int((chassis["x"] - (turret["x"])) * 0.5)
         turret_padding_y = int(chassis["y"]) + 1
 
         for x in range(turret_padding_x, turret_padding_x + turret["x"]):
             for y in range(turret_padding_y, turret_padding_y + turret["y"]):
-                self.contents[(x, y)] = buildutils.Tile(x, y, "TURRET", "TURRET")
+                self.contents[(x, y)] = vehicle_stats.VehicleTile(x, y, "TURRET", "TURRET")
 
     def mouse_pointer(self):
         mouse_hit = self.mouse_hit_ray("background")

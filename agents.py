@@ -10,6 +10,7 @@ import json
 import particles
 import agent_states
 import agent_actions
+import vehicle_stats
 
 
 class TestHouse(object):
@@ -403,17 +404,7 @@ class VehicleAgent(Agent):
 
     def load_vehicle(self):
 
-        in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
-
-        with open(in_path, "r") as infile:
-            vehicle_dict = json.load(infile)
-
-        if self.load_name in vehicle_dict:
-            vehicle = vehicle_dict[self.load_name]
-        else:
-            vehicle = vehicle_dict["light_tank"]
-
-        self.stats = vehicle["stats"]
+        self.stats = vehicle_stats.load_vehicle(self.load_name)
 
         if self.team == 0:
             cammo = 3
@@ -422,7 +413,7 @@ class VehicleAgent(Agent):
 
         self.display_object = model_display.VehicleModel(self.hull, self.stats, owner=self, cammo=cammo)
         self.stats = self.display_object.stats
-        self.size = 3 + self.stats["chassis_size"]
+        self.size = 3 + self.stats.chassis_size
         self.tile_offset = (self.size * 0.5) - 0.5
 
         self.set_shell()
@@ -451,21 +442,24 @@ class VehicleAgent(Agent):
         drive_mod = 1.0
 
         if self.reversing:
-            if self.stats["drive"] == "WHEELED":
+            if self.stats.drive_type == "WHEELED":
                 drive_mod = 0.3
-            elif self.stats["drive"] == "HALFTRACK":
+            elif self.stats.drive_type == "HALFTRACK":
                 drive_mod = 0.6
             else:
                 drive_mod = 0.8
 
+        handling = self.stats.handling
+        speed = self.stats.speed
+
         if self.off_road:
-            self.dynamic_stats["handling"] = self.stats["off_road_handling"]
-            self.dynamic_stats["abs_speed"] = self.stats["off_road"] * 0.003  # 0.0046
-            self.dynamic_stats["acceleration"] = self.stats["off_road_handling"] * 0.002
+            self.dynamic_stats["handling"] = handling[1]
+            self.dynamic_stats["abs_speed"] = speed[1] * 0.003
+            self.dynamic_stats["acceleration"] = handling[1] * 0.002
         else:
-            self.dynamic_stats["handling"] = self.stats["on_road_handling"]
-            self.dynamic_stats["abs_speed"] = self.stats["on_road"] * 0.003  # 0.0046
-            self.dynamic_stats["acceleration"] = self.stats["on_road_handling"] * 0.002
+            self.dynamic_stats["handling"] = handling[0]
+            self.dynamic_stats["abs_speed"] = speed[0] * 0.003
+            self.dynamic_stats["acceleration"] = handling[0] * 0.002
 
         self.dynamic_stats["speed"] = (self.dynamic_stats["abs_speed"] * drive_mod) * self.throttle
         self.dynamic_stats["turning_speed"] = self.dynamic_stats["acceleration"] * 0.8
@@ -557,17 +551,7 @@ class Artillery(Agent):
 
     def load_vehicle(self):
 
-        in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
-
-        with open(in_path, "r") as infile:
-            vehicle_dict = json.load(infile)
-
-        if self.load_name in vehicle_dict:
-            vehicle = vehicle_dict[self.load_name]
-        else:
-            vehicle = vehicle_dict["heavy mg"]
-
-        self.stats = vehicle["stats"]
+        self.stats = vehicle_stats.load_vehicle(self.load_name)
 
         if self.team == 0:
             cammo = 2
@@ -576,22 +560,22 @@ class Artillery(Agent):
 
         self.display_object = model_display.ArtilleryModel(self.hull, self.stats, owner=self, cammo=cammo)
         self.stats = self.display_object.stats
-        self.size = 3 + self.stats["chassis_size"]
+        self.size = 3 + self.stats.chassis_size
         self.tile_offset = (self.size * 0.5) - 0.5
 
         self.set_shell()
 
-        if self.stats['tons'] > 12:
+        if self.stats.weight > 12:
             self.dynamic_stats['speed'] = 0.025
             self.dynamic_stats['turning_speed'] = 0.001
             self.dynamic_stats['deploy_speed'] = 0.005
 
-        elif self.stats['tons'] > 7:
+        elif self.stats.weight > 7:
             self.dynamic_stats['speed'] = 0.05
             self.dynamic_stats['turning_speed'] = 0.003
             self.dynamic_stats['deploy_speed'] = 0.01
 
-        elif self.stats['tons'] > 5:
+        elif self.stats.weight > 5:
             self.dynamic_stats['speed'] = 0.1
             self.dynamic_stats['turning_speed'] = 0.005
             self.dynamic_stats['deploy_speed'] = 0.015

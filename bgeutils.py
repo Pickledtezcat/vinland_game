@@ -14,6 +14,7 @@ class TerrainTile(object):
         self.occupied = False
         self.off_road = False
 
+
 class RayHit(object):
     def __init__(self, hit_object, point, normal):
         self.hit_object = hit_object
@@ -167,3 +168,8 @@ def rand_axis_high(maximum, height):
 
 def rand_axis_center(maximum):
     return [rand_axis(maximum) for _ in range(3)]
+
+
+
+
+

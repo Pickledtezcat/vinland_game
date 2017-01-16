@@ -28,18 +28,6 @@ def split_string_in_lines(contents, line_length):
     return new_contents
 
 
-class Tile(object):
-    def __init__(self, x, y, location, weapon_location):
-        self.x = x
-        self.y = y
-
-        self.part = None
-        self.location = location
-        self.weapon_location = weapon_location
-        self.parent_tile = None
-        self.rotated = False
-
-
 class Button(object):
     def __init__(self, manager, button_size, name, label_text, location, part_key=None, color=None, mouse_over=None,
                  text_box=False, scale=1.0, text_entry=False):

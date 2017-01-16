@@ -2,6 +2,68 @@ import bge
 import mathutils
 import bgeutils
 import vehicle_parts
+import json
+
+
+def save_vehicle(vehicle_dict, chassis_size, turret_size, contents, save_name, faction_number):
+    current_contents = {"{}&{}".format(key[0], key[1]): contents[key].__dict__ for key in
+                        contents}
+
+    new_vehicle = {"name": save_name,
+                   "chassis_size": chassis_size,
+                   "turret_size": turret_size,
+                   "faction_number": faction_number,
+                   "contents": current_contents}
+
+    vehicle_dict[save_name] = new_vehicle
+
+    out_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
+    with open(out_path, "w") as outfile:
+        json.dump(vehicle_dict, outfile)
+
+
+class VehicleTile(object):
+    def __init__(self, x, y, location, weapon_location):
+        self.x = x
+        self.y = y
+
+        self.part = None
+        self.location = location
+        self.weapon_location = weapon_location
+        self.parent_tile = None
+        self.rotated = False
+
+
+def load_vehicle(load_name):
+
+    def construct_tile(tile):
+        new_tile = VehicleTile(tile["x"], tile["y"], tile["location"], tile["weapon_location"])
+        new_tile.part = tile["part"]
+        new_tile.parent_tile = tile["parent_tile"]
+        new_tile.rotated = tile["rotated"]
+
+        return new_tile
+
+    in_path = bge.logic.expandPath("//vehicles/saved_vehicles.txt")
+
+    with open(in_path, "r") as infile:
+        vehicle_dict = json.load(infile)
+
+    if load_name in vehicle_dict:
+        vehicle = vehicle_dict[load_name]
+
+        contents = vehicle['contents']
+        chassis_size = vehicle["chassis_size"]
+        turret_size = vehicle["turret_size"]
+        faction_number = vehicle["faction_number"]
+
+        tiles = [construct_tile(tile) for tile in contents]
+        vehicle_stats = VehicleStats(chassis_size, turret_size, contents, faction_number)
+
+        return vehicle_stats
+
+    return None
+
 
 class VehicleWeapon(object):
 
@@ -29,12 +91,11 @@ class VehicleWeapon(object):
 
 class VehicleStats(object):
 
-    def __init__(self, chassis_size, turret_size, contents, faction_number=0):
+    def __init__(self, chassis_size, turret_size, contents, faction_number):
 
         self.chassis_size = chassis_size
         self.turret_size = turret_size
         self.contents = contents
-
         self.faction_number = faction_number
 
         self.speed = []
