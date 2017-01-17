@@ -828,8 +828,6 @@ class DebugBuilderMode(BaseBuilder):
                 self.vehicle_display = model_display.VehicleModel(self.model_display, self.stats, scale=0.30,
                                                                   cammo=self.cammo)
 
-            print("showing")
-
     def clean_tiles(self):
 
         for tile in self.tiles:

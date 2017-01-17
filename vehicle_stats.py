@@ -73,6 +73,7 @@ class VehicleWeapon(object):
         self.section = section
         self.weapon_location = weapon_location
 
+        self.name = self.part['name']
         self.visual = self.part['visual']
         self.rating = self.part['rating']
         self.flags = self.part['flags']
@@ -113,6 +114,7 @@ class VehicleStats(object):
         self.range = 0
         self.stores = 0
         self.ammo = 0
+        self.fuel = 0
         self.reliability = 0
         self.cost = 0
 
@@ -120,11 +122,10 @@ class VehicleStats(object):
         self.armor = dict(TURRET=0, FRONT=0, FLANKS=0)
         self.manpower = dict(TURRET=0, FRONT=0, FLANKS=0)
         self.crits = dict(TURRET=[], FRONT=[], FLANKS=[])
-        self.weapons = dict(TURRET=[], FRONT=[], LEFT=[], RIGHT=[], BACK=[])
+        self.weapons = []
         self.durability = 0
         self.armored = False
         self.open_top = False
-        self.open_turret = False
 
         self.artillery = False
         self.invalid = []
@@ -151,10 +152,7 @@ class VehicleStats(object):
                 if part_type != "weapon":
                     self.flags = bgeutils.add_entry(part['flags'], self.flags)
 
-        if "GUN_CARRIAGE" in self.flags:
-            self.build_artillery(parts)
-        else:
-            self.build_vehicle(parts)
+        self.build_vehicle(parts)
 
     def build_vehicle(self, parts):
 
@@ -164,8 +162,6 @@ class VehicleStats(object):
 
         engine_handling = 0
         suspension = 0
-        fuel = 0.0
-        ammo = 0.0
 
         sorted_parts = sorted(parts, key=lambda my_key: parts[my_key].get("rating", 0))
 
@@ -239,7 +235,7 @@ class VehicleStats(object):
             if part_type == "engine":
 
                 if self.engine_rating == 0:
-                    fuel += 0.5
+                    self.fuel += 0.5
                     self.engine_rating += rating
                     engine_handling += (rating * 0.5)
                 else:
@@ -253,21 +249,31 @@ class VehicleStats(object):
                 self.ammo += 0.5
 
                 weapon = VehicleWeapon(part, location, weapon_location)
-                self.weapons[weapon_location].append(weapon)
+                self.weapons.append(weapon)
 
             else:
-                pass
-                # TODO add other flag processes
+                # TODO add more flags
+                if "AMMO" in self.flags:
+                    self.ammo += 1.0
+                if "FUEL" in self.flags:
+                    self.fuel += 1.0
 
         for section_key in self.armor:
             section_armor = self.armor[section_key]
             if section_armor > 0 or "ARMORED_CHASSIS" in self.flags:
                 self.armored = True
 
-        self.get_movement(suspension, engine_handling)
+        if "GUN_CARRIAGE" in self.flags:
+            self.get_gun_movement()
+        else:
+            self.get_vehicle_movement(suspension, engine_handling)
+
         self.get_vision()
 
-    def get_movement(self, suspension, engine_handling):
+    def get_gun_movement(self):
+        pass
+
+    def get_vehicle_movement(self, suspension, engine_handling):
 
         suspension_dict = vehicle_parts.suspension_dict
         drive_dict = vehicle_parts.drive_dict
@@ -318,12 +324,11 @@ class VehicleStats(object):
             good_vision = True
             self.open_top = True
 
-        if "OPEN_TURRET" in self.flags:
-            great_vision = True
-            self.open_turret = True
-
         if self.turret_size > 0:
-            good_vision = True
+            if "OPEN_TOP" in self.flags:
+                great_vision = True
+            else:
+                good_vision = True
 
         if "COMMANDER" in self.flags:
             if self.turret_size > 0:
