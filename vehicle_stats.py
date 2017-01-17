@@ -58,7 +58,7 @@ def load_vehicle(load_name):
         faction_number = vehicle["faction_number"]
 
         tiles = [construct_tile(tile) for tile in contents]
-        vehicle_stats = VehicleStats(chassis_size, turret_size, contents, faction_number)
+        vehicle_stats = VehicleStats(chassis_size, turret_size, tiles, faction_number)
 
         return vehicle_stats
 
@@ -67,20 +67,18 @@ def load_vehicle(load_name):
 
 class VehicleWeapon(object):
 
-    def __init__(self, part_number, section, weapon_location):
+    def __init__(self, part, section, weapon_location):
 
-        self.part_number = part_number
+        self.part = part
         self.section = section
         self.weapon_location = weapon_location
 
-        parts_dict = vehicle_parts.get_vehicle_parts()
-        part= parts_dict[self.part_number]
+        self.visual = self.part['visual']
+        self.rating = self.part['rating']
+        self.flags = self.part['flags']
 
         self.rate_of_fire = 0
         self.emitter = None
-
-    def set_rate_of_fire(self, manpower):
-        self.rate_of_fire = manpower
 
     def set_emitter(self, emitter):
         self.emitter = emitter
@@ -120,8 +118,9 @@ class VehicleStats(object):
 
         self.flags = []
         self.armor = dict(TURRET=0, FRONT=0, FLANKS=0)
+        self.manpower = dict(TURRET=0, FRONT=0, FLANKS=0)
         self.crits = dict(TURRET=[], FRONT=[], FLANKS=[])
-        self.weapons = []
+        self.weapons = dict(TURRET=[], FRONT=[], LEFT=[], RIGHT=[], BACK=[])
         self.durability = 0
         self.armored = False
         self.open_top = False
@@ -134,13 +133,15 @@ class VehicleStats(object):
 
     def generate_stats(self):
 
+        parts_dict = vehicle_parts.get_vehicle_parts()
         parts = {}
 
         for content_key in self.contents:
             tile = self.contents[content_key]
 
             if tile.parent_tile == content_key:
-                part = self.contents[tile.parent_tile].part
+                part_key = self.contents[tile.parent_tile].part
+                part = parts_dict[part_key]
                 location = tile.location
                 weapon_location = tile.weapon_location
                 part_type = part.get("part_type", None)
@@ -159,24 +160,21 @@ class VehicleStats(object):
 
         parts_dict = vehicle_parts.get_vehicle_parts()
         chassis_armor_scale = vehicle_parts.chassis_dict[self.chassis_size]["armor_scale"]
-        turret_armor_scale = vehicle_parts.chassis_dict[self.turret_size]["armor_scale"]
+        turret_armor_scale = vehicle_parts.turret_dict[self.turret_size]["armor_scale"]
 
         engine_handling = 0
         suspension = 0
         fuel = 0.0
         ammo = 0.0
-        vision_distance = 1
 
         sorted_parts = sorted(parts, key=lambda my_key: parts[my_key].get("rating", 0))
 
         sections = ["FRONT", "FLANKS", "TURRET"]
-        section_dict = {section: {"armor": 0, "manpower": 0, "crits":[]} for section in sections}
 
         for part_key in sorted_parts:
 
             location = parts[part_key]["location"]
-            part_number = parts[part_key]["part"]
-            part = parts_dict[part_number]
+            part = parts[part_key]["part"]
             part_type = part.get("part_type", None)
             rating = part.get("rating", 0)
             flag = part.get("flags")
@@ -185,7 +183,7 @@ class VehicleStats(object):
             if part_type == "crew":
                 self.weight += (weight * 0.5)
                 self.crew += 1
-                section_dict[location]["manpower"] += rating
+                self.manpower[location] += rating
 
             if part == "armor":
                 if location == "TURRET":
@@ -193,10 +191,10 @@ class VehicleStats(object):
                 else:
                     armor_scale = chassis_armor_scale
 
-                if section_dict[location]['armor'] < 1:
-                    section_dict[location]['armor'] += rating
+                if self.armor[location] < 1:
+                    self.armor[location] += rating
                 else:
-                    section_dict[location]['armor'] += (rating * 0.5)
+                    self.armor[location] += (rating * 0.5)
 
                 weight *= armor_scale
                 self.weight += weight
@@ -212,8 +210,7 @@ class VehicleStats(object):
 
             location = parts[part_key]["location"]
             weapon_location = parts[part_key]["weapon_location"]
-            part_number = parts[part_key]["part"]
-            part = parts_dict[part_number]
+            part = parts[part_key]["part"]
             part_type = part.get("part_type", None)
 
             x_size = part.get("x_size")
@@ -255,23 +252,17 @@ class VehicleStats(object):
             if part_type == "weapon":
                 self.ammo += 0.5
 
-                weapon = VehicleWeapon(part_number, location, weapon_location)
-                self.weapons.append(weapon)
+                weapon = VehicleWeapon(part, location, weapon_location)
+                self.weapons[weapon_location].append(weapon)
 
-        for section_key in section_dict:
-            section = section_dict[section_key]
-            self.armor[section_key] = section["armor"]
-            if section["armor"] > 0 or "ARMORED_CHASSIS" in self.flags:
+            else:
+                pass
+                # TODO add other flag processes
+
+        for section_key in self.armor:
+            section_armor = self.armor[section_key]
+            if section_armor > 0 or "ARMORED_CHASSIS" in self.flags:
                 self.armored = True
-
-            section_weapons = [w for w in self.weapons if w.section == section_key]
-
-            manpower = section['manpower']
-            section_manpower = manpower / len(section_weapons)
-
-            for weapon in self.weapons:
-                if weapon.section == section_key:
-                    weapon.set_rate_of_fire(section_manpower)
 
         self.get_movement(suspension, engine_handling)
         self.get_vision()
@@ -280,7 +271,7 @@ class VehicleStats(object):
 
         suspension_dict = vehicle_parts.suspension_dict
         drive_dict = vehicle_parts.drive_dict
-        power_to_weight = round((self.engine_rating * 50) / self.weight, 1)
+        power_to_weight = round((self.engine_rating * 50) / max(1, self.weight), 1)
 
         drive_mods = drive_dict[self.drive_type]
         suspension_mods = suspension_dict[self.suspension_type]

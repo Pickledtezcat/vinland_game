@@ -352,7 +352,7 @@ class ExitMode(BaseBuilder):
             owner = button_hit[0]["button_owner"]
             if owner.name == "yes":
                 if self.left_button:
-                    bgeutils.bge.logic.endGame()
+                    bge.logic.endGame()
 
             elif owner.name == "no":
                 if self.left_button:
@@ -825,9 +825,10 @@ class DebugBuilderMode(BaseBuilder):
                                                                     cammo=self.cammo)
 
             else:
-
                 self.vehicle_display = model_display.VehicleModel(self.model_display, self.stats, scale=0.30,
                                                                   cammo=self.cammo)
+
+            print("showing")
 
     def clean_tiles(self):
 
@@ -1150,9 +1151,7 @@ class DebugBuilderMode(BaseBuilder):
     def generate_stats(self):
 
         self.clean_info_buttons()
-        self.stats = {}
-        self.vehicle_stats = vehicle_stats.VehicleStats(self.chassis_size, self.turret_size, self.contents, self.manager.faction)
-
+        self.stats = vehicle_stats.VehicleStats(self.chassis_size, self.turret_size, self.contents, self.manager.faction)
 
         # stat_1_categories = ["tons", "cost", "stability", "total_crew", "suspension_type", "suspension_rating",
         #                      "engine_rating"]

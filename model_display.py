@@ -33,7 +33,7 @@ class VehicleModel(object):
 
         factions = {0: [2, 5], 1: [1, 4], 2: [3, 6]}
 
-        drive_number = drive_display[self.stats.drive]
+        drive_number = drive_display[self.stats.drive_type]
 
         chassis_size = self.stats.chassis_size - 1
         turret_size = self.stats.turret_size - 1
@@ -58,30 +58,34 @@ class VehicleModel(object):
                     faction_number = faction_key
                     gun_faction = faction_key
 
-        # TODO finish converting stats from dict to object
-
         layout = 0
-        weapon_list = [len(self.stats["weapons"][location_key]) for location_key in self.stats["weapons"]]
-        has_weapons = sum(weapon_list) > 0
+
+        weapon_list = [len(self.stats.weapons[location_key]) for location_key in self.stats.weapons]
+        has_weapons = len(weapon_list) > 0
+
+        armor_amounts = [self.stats.armor[location] for location in self.stats.armor]
+
+        armor_scale = sum(armor_amounts) / max(1, self.stats.weight)
+        armor_threshold = 0.6
 
         if turret_size >= 0:
-            if self.stats["armor_scale"] > 1.0:
+            if armor_scale > armor_threshold:
                 layout = 2
             else:
                 layout = 1
 
-        elif self.stats["open_top"]:
+        elif self.stats.open_top:
             layout = 3
 
-        elif self.stats["armor_scale"] > 0.0 or "MANTLET" in self.stats["flags"]:
-            if "SUPERSTRUCTURE" in self.stats["flags"]:
+        elif armor_scale > 0.0 or "MANTLET" in self.stats.flags:
+            if "SUPERSTRUCTURE" in self.stats.flags:
                 layout = 4
-            elif self.stats["armor_scale"] > 1.0:
+            elif armor_scale > 1.0:
                 layout = 2
             else:
                 layout = 1
 
-        elif has_weapons or self.stats["armored"]:
+        elif has_weapons or self.stats.armored:
             layout = 1
 
         chassis_string = "v_chassis_{}_{}_{}_{}{}".format(chassis_size, drive_number, layout, faction_number, speed)
@@ -94,12 +98,14 @@ class VehicleModel(object):
             for track in self.tracks:
                 mesh = track.meshes[0]
 
-                bgeutils.bge.logic.globalDict["lib"] = bgeutils.bge.logic.globalDict.get("lib", 0)
+                bge.logic.globalDict["lib"] = bge.logic.globalDict.get("lib", 0)
 
-                new_name = "lib_new_mesh_{}".format(bgeutils.bge.logic.globalDict["lib"])
-                new_mesh = bgeutils.bge.logic.LibNew(new_name, "Mesh", [mesh.name])
-                bgeutils.bge.logic.globalDict["lib"] += 1
+                new_name = "lib_new_mesh_{}".format(bge.logic.globalDict["lib"])
+                new_mesh = bge.logic.LibNew(new_name, "Mesh", [mesh.name])
+                bge.logic.globalDict["lib"] += 1
                 track.replaceMesh(new_mesh[0])
+
+        # TODO finish converting stats from dict to object
 
         self.wheels = bgeutils.get_ob_list("wheels", self.vehicle.children)
 
@@ -107,41 +113,41 @@ class VehicleModel(object):
 
         if turret_size >= 0:
 
-            if "AA_MOUNT" in self.stats["flags"]:
+            if "AA_MOUNT" in self.stats.flags:
                 turret_number = 1
 
-            elif self.stats["open_turret"]:
-                if self.stats["armor_scale"] > 1.0:
+            elif self.stats.open_turret:
+                if armor_scale > armor_threshold:
                     turret_number = 3
                 else:
                     turret_number = 2
 
-            elif "SLOPED" in self.stats["flags"]:
-                if self.stats["armor_scale"] > 1.0:
+            elif "SLOPED" in self.stats.flags:
+                if armor_scale > armor_threshold:
                     turret_number = 9
                 else:
                     turret_number = 8
 
-            elif "SLOPED" in self.stats["flags"]:
-                if self.stats["armor_scale"] > 1.0:
+            elif "SLOPED" in self.stats.flags:
+                if armor_scale > armor_threshold:
                     turret_number = 9
                 else:
                     turret_number = 8
 
-            elif self.stats["suspension"] in fast:
-                if self.stats["armor_scale"] > 1.0:
+            elif self.stats.suspension_type in fast:
+                if armor_scale > armor_threshold:
                     turret_number = 7
                 else:
                     turret_number = 6
 
             else:
-                if self.stats["armor_scale"] > 1.0:
+                if armor_scale > armor_threshold:
                     turret_number = 5
                 else:
                     turret_number = 4
 
             antenna = 0
-            if "ANTENNA" in self.stats["flags"]:
+            if "ANTENNA" in self.stats.flags:
                 antenna = 1
 
             turret_string = "v_turret_{}_{}_{}".format(turret_number, turret_size, antenna)
@@ -164,21 +170,21 @@ class VehicleModel(object):
 
         if layout > 0:
 
-            if "OPEN_TOP" in self.stats["flags"] and turret_size < 1:
+            if "OPEN_TOP" in self.stats.flags and turret_size < 1:
                 o_adder = self.gun_adders["front_gun"][0]
                 gun_block_string = "v_gun_block_{}_{}".format(gun_faction, chassis_size)
                 gun_block = o_adder.scene.addObject(gun_block_string, o_adder, 0)
                 gun_block.setParent(o_adder)
                 self.get_adders("front_gun", parent=o_adder, parent_key="mount_gun")
 
-            if "OPEN_TURRET" in self.stats["flags"] and turret_size > 0:
+            if "OPEN_TURRET" in self.stats.flags and turret_size > 0:
                 ot_adder = self.gun_adders["turret_gun"][0]
                 gun_block_string = "v_gun_block_{}_{}".format(gun_faction, turret_size)
                 gun_block = ot_adder.scene.addObject(gun_block_string, ot_adder, 0)
                 gun_block.setParent(ot_adder)
                 self.get_adders("turret_gun", parent=ot_adder, parent_key="mount_gun")
 
-            if "SPONSON" in self.stats["flags"]:
+            if "SPONSON" in self.stats.flags:
 
                 sponson_locations = [("FRONT", "front_gun"), ("LEFT", "left_gun"), ("RIGHT", "right_gun"),
                                      ("BACK", "back_gun")]
@@ -186,14 +192,14 @@ class VehicleModel(object):
                 for sponson_location in sponson_locations:
                     adder_key = sponson_location[1]
                     weapon_key = sponson_location[0]
-                    if len(self.stats["weapons"][weapon_key]) > 0:
+                    if len(self.stats.weapons[weapon_key]) > 0:
                         c_adder = self.gun_adders[adder_key][0]
                         mantlet_string = "v_mantlet_{}_{}".format(3, chassis_size)
                         mantlet = c_adder.scene.addObject(mantlet_string, c_adder, 0)
                         mantlet.setParent(c_adder)
                         self.get_adders(adder_key, parent=c_adder, parent_key="sponson_gun")
 
-            if "MANTLET" in self.stats["flags"] and turret_size > 0:
+            if "MANTLET" in self.stats.flags and turret_size > 0:
                 t_adder = self.gun_adders["turret_gun"][0]
                 mantlet_string = "v_mantlet_{}_{}".format(gun_faction, turret_size)
                 mantlet = t_adder.scene.addObject(mantlet_string, t_adder, 0)
@@ -205,15 +211,15 @@ class VehicleModel(object):
 
             for section in sections:
                 location = section[0]
-                weapons = [ob for ob in self.stats["weapons"][location] if ob["flags"] != "ROCKETS"]
-                weapons = sorted(weapons, key=lambda s_weapon: s_weapon["visual"])
+                weapons = [ob for ob in self.stats.weapons[location] if ob.flags != "ROCKETS"]
+                weapons = sorted(weapons, key=lambda s_weapon: s_weapon.visual)
                 weapons.reverse()
                 adders = self.gun_adders.get(section[1])
                 if adders:
 
                     weapons_length = len(weapons)
 
-                    if "FUEL" in self.stats["flags"] and weapons_length < 1:
+                    if "FUEL" in self.stats.flags and weapons_length < 1:
                         if section[0] == "LEFT" or section[0] == "RIGHT":
                             fuel_string = "v_fuel_tank_{}".format(chassis_size)
                             f_adder = adders[0]
@@ -224,7 +230,7 @@ class VehicleModel(object):
                         if i < len(adders):
                             w_adder = adders[i]
                             weapon = weapons[i]
-                            gun_size = weapon["visual"]
+                            gun_size = weapon.visual
                             gun_string = "v_gun_{}_{}".format(gun_faction, gun_size)
 
                             gun = w_adder.scene.addObject(gun_string, w_adder, 0)
@@ -248,11 +254,11 @@ class VehicleModel(object):
         has_commander = False
 
         for commander_flag in commander_flags:
-            if commander_flag in self.stats["flags"]:
+            if commander_flag in self.stats.flags:
                 has_commander = True
 
-        if "ROCKET_MOUNT" in self.stats["flags"]:
-            if self.stats["turret_size"] > 0:
+        if "ROCKET_MOUNT" in self.stats.flags:
+            if self.stats.turret_size > 0:
                 attach_point = self.turret
                 rocket_size = turret_size
             else:
@@ -262,7 +268,7 @@ class VehicleModel(object):
             rocket_adder = bgeutils.get_ob("turret", attach_point.children)
             if rocket_adder:
                 rocket_armor = 0
-                if self.stats["armor_scale"] > 1.0:
+                if armor_scale > 1.0:
                     rocket_armor = 1
 
                 rocket_turret = "v_turret_0_{}_{}".format(rocket_size, rocket_armor)
@@ -270,7 +276,7 @@ class VehicleModel(object):
                 self.rocket_turret.setParent(attach_point)
 
         elif has_commander:
-            if self.stats["turret_size"] > 0:
+            if self.stats.turret_size > 0:
                 attach_point = self.turret
             else:
                 attach_point = self.vehicle
@@ -288,7 +294,7 @@ class VehicleModel(object):
                 else:
                     hatch_shape = "r"
 
-                if "COMMANDERS_CUPOLA" in self.stats["flags"] or "NIGHT_VISION_CUPOLA" in self.stats["flags"]:
+                if "COMMANDERS_CUPOLA" in self.stats.flags or "NIGHT_VISION_CUPOLA" in self.stats.flags:
                     if hatch_size == "s":
                         self.open_hatch = "small_cupola"
                         self.closed_hatch = "small_cupola"
@@ -302,7 +308,7 @@ class VehicleModel(object):
                 self.hatch = hatch_adder.scene.addObject(self.open_hatch, hatch_adder, 0)
                 self.hatch.setParent(attach_point)
 
-                if "NIGHT_VISION_CUPOLA" in self.stats["flags"]:
+                if "NIGHT_VISION_CUPOLA" in self.stats.flags:
                     night_scope = hatch_adder.scene.addObject("v_night_scope", hatch_adder, 0)
                     night_scope.setParent(self.hatch)
 
@@ -334,7 +340,7 @@ class VehicleModel(object):
 
     def movement_action(self):
 
-        speed = self.owner.dynamic_stats['display_speed']
+        speed = self.owner.dynamic_stats["display_speed"]
 
         for wheel in self.wheels:
             wheel.applyRotation([-speed, 0.0, 0.0], 1)
@@ -400,20 +406,20 @@ class ArtilleryModel(object):
                          5: 5,
                          6: 4}
 
-        icon = faction_icons[self.stats["faction_number"]]
-        chassis_size = self.stats["chassis_size"] - 1
+        icon = faction_icons[self.stats.faction_number]
+        chassis_size = self.stats.chassis_size - 1
 
         faction_number = 1
 
         factions = {0: [2, 5], 1: [1, 4], 2: [3, 6]}
         for faction_key in factions:
             faction_list = factions[faction_key]
-            if self.stats["faction_number"] in faction_list:
+            if self.stats.faction_number in faction_list:
                 faction_number = faction_key
 
         color = [icon * 0.25, 0.0, cammo * 0.125, 1.0]
 
-        all_weapons = self.stats["weapons"]["FRONT"]
+        all_weapons = self.stats.weapons["FRONT"]
 
         model = "light_machine_gun"
         weapon = None
@@ -422,8 +428,7 @@ class ArtilleryModel(object):
 
         if all_weapons:
             weapon = all_weapons[0]
-            flags = self.stats['flags']
-            weapon_rating = weapon['rating']
+            flags = self.stats.flags
 
             if "AA_MOUNT" in flags:
                 add_gun_mount = True
@@ -439,10 +444,10 @@ class ArtilleryModel(object):
             elif "ROCKET_MOUNT" in flags:
                 add_gun_mount = False
 
-                weapons = self.stats["weapons"]["FRONT"]
+                weapons = self.stats.weapons["FRONT"]
                 total_rating = 0
                 for w in weapons:
-                    total_rating += w['rating']
+                    total_rating += w.rating
 
                 if total_rating > 35:
                     model = "heavy_rocket_launcher"
@@ -453,14 +458,14 @@ class ArtilleryModel(object):
 
             else:
 
-                if weapon['flags'] == "MORTAR":
+                if weapon.flags == "MORTAR":
                     add_gun_mount = False
                     if chassis_size > 1:
                         model = "light_mortar"
                     else:
                         model = "heavy_mortar"
 
-                elif weapon['flags'] in artillery:
+                elif weapon.flags in artillery:
 
                     artillery_size_dict = {0: "heavy_machine_gun",
                                            1: "light_artillery",
@@ -497,7 +502,7 @@ class ArtilleryModel(object):
             if leg.children:
                 end = bgeutils.get_ob("deployed_position", leg.children)
                 if end:
-                    leg_set = {'leg': leg, 'start': leg.localTransform, "end": end.localTransform}
+                    leg_set = {"leg": leg, "start": leg.localTransform, "end": end.localTransform}
                     end.endObject()
                     self.legs.append(leg_set)
 
@@ -508,7 +513,7 @@ class ArtilleryModel(object):
             if gun.children:
                 end = bgeutils.get_ob("deployed_position", gun.children)
                 if end:
-                    gun_set = {'gun': gun, 'start': gun.localTransform, "end": end.localTransform}
+                    gun_set = {"gun": gun, "start": gun.localTransform, "end": end.localTransform}
                     end.endObject()
                     self.gun = gun_set
 
@@ -533,10 +538,10 @@ class ArtilleryModel(object):
                 gun_mount = adders[0]
 
                 if gun_mount:
-                    gun_size = weapon["visual"]
+                    gun_size = weapon.visual
                     if gun_size != 10:
 
-                        if weapon['flags'] == "HIGH_VELOCITY":
+                        if weapon.flags == "HIGH_VELOCITY":
                             brake = 0
                         else:
                             brake = 1
@@ -567,7 +572,7 @@ class ArtilleryModel(object):
 
     def movement_action(self):
 
-        speed = self.owner.dynamic_stats['display_speed']
+        speed = self.owner.dynamic_stats["display_speed"]
 
         for wheel in self.wheels:
             wheel.applyRotation([-speed, 0.0, 0.0], 1)
@@ -582,17 +587,17 @@ class ArtilleryModel(object):
         deploy_amount = self.owner.deployed
 
         for leg in self.legs:
-            leg_model = leg['leg']
-            start = leg['start']
-            end = leg['end']
+            leg_model = leg["leg"]
+            start = leg["start"]
+            end = leg["end"]
             leg_model.localTransform = start.lerp(end, deploy_amount)
 
         gun = self.gun
 
         if gun:
-            gun_model = gun['gun']
-            start = gun['start']
-            end = gun['end']
+            gun_model = gun["gun"]
+            start = gun["start"]
+            end = gun["end"]
             gun_model.localTransform = start.lerp(end, deploy_amount)
 
     def turret_turn(self):
@@ -636,10 +641,10 @@ class ArtilleryModel(object):
                 mesh.transformUV(0, transform)
 
             for leg in self.legs:
-                leg['leg'].localTransform = leg['start'].lerp(leg['end'], bgeutils.smoothstep(self.display_cycle))
+                leg["leg"].localTransform = leg["start"].lerp(leg["end"], bgeutils.smoothstep(self.display_cycle))
 
             if self.gun:
-                self.gun['gun'].localTransform = self.gun['start'].lerp(self.gun['end'],
+                self.gun["gun"].localTransform = self.gun["start"].lerp(self.gun["end"],
                                                                         bgeutils.smoothstep(self.display_cycle))
 
     def game_update(self):
