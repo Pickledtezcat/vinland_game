@@ -411,8 +411,7 @@ class VehicleAgent(Agent):
         else:
             cammo = 4
 
-        self.display_object = model_display.VehicleModel(self.hull, self.stats, owner=self, cammo=cammo)
-        self.stats = self.display_object.stats
+        self.display_object = model_display.VehicleModel(self.hull, self, cammo=cammo)
         self.size = 3 + self.stats.chassis_size
         self.tile_offset = (self.size * 0.5) - 0.5
 
@@ -527,7 +526,7 @@ class Artillery(Agent):
 
         self.dynamic_stats = {"handling": 0.0, "acceleration": 0.0, "speed": 0.01, "abs_speed": 0.01,
                               "crew": 1.0, "drive": "WHEELED", "ammo_remaining": 0.0, "stores_remaining": 0.0, "HP": 0,
-                              "shock": 0, "turret_speed": 0.02, "deploy_speed":0.02,
+                              "shock": 0, "turret_speed": 0.02, "deploy_speed": 0.02,
                               "turning_speed": 0.005, "display_speed": 0.005, "weapons": None}
 
     def update_dynamic_stats(self):
@@ -558,8 +557,7 @@ class Artillery(Agent):
         else:
             cammo = 4
 
-        self.display_object = model_display.ArtilleryModel(self.hull, self.stats, owner=self, cammo=cammo)
-        self.stats = self.display_object.stats
+        self.display_object = model_display.ArtilleryModel(self.hull, self, cammo=cammo)
         self.size = 3 + self.stats.chassis_size
         self.tile_offset = (self.size * 0.5) - 0.5
 
@@ -617,6 +615,8 @@ class Artillery(Agent):
         if self.stance == "FLANK":
             self.prone = False
             self.dynamic_stats["speed"] = 0.03
+
+        # TODO set max throttle using formation settings. Move set and update dynamic stats in to main class.
 
     def add_squad(self):
 

@@ -448,7 +448,8 @@ class DebugBuilderMode(BaseBuilder):
 
         item_keys = [key for key in self.parts_dict if
                      self.parts_dict[key]["part_type"] == self.item_type and self.parts_dict[key]
-                     ["level"] <= self.tech_level_dict.get(self.parts_dict[key]["part_type"], 1)]
+                     ["level"] <= self.tech_level_dict.get(self.parts_dict[key]["part_type"], 1) <= self.parts_dict[key]
+                     ["obsolete"]]
 
         parts = sorted(item_keys, key=lambda my_key: self.parts_dict[my_key]["level"])
 
@@ -821,11 +822,11 @@ class DebugBuilderMode(BaseBuilder):
         if self.stats:
 
             if "GUN_CARRIAGE" in self.stats.flags:
-                self.vehicle_display = model_display.ArtilleryModel(self.model_display, self.stats, scale=0.30,
+                self.vehicle_display = model_display.ArtilleryModel(self.model_display, self, scale=0.30,
                                                                     cammo=self.cammo)
 
             else:
-                self.vehicle_display = model_display.VehicleModel(self.model_display, self.stats, scale=0.30,
+                self.vehicle_display = model_display.VehicleModel(self.model_display, self, scale=0.30,
                                                                   cammo=self.cammo)
 
     def clean_tiles(self):
@@ -1149,75 +1150,64 @@ class DebugBuilderMode(BaseBuilder):
     def generate_stats(self):
 
         self.clean_info_buttons()
-        self.stats = vehicle_stats.VehicleStats(self.chassis_size, self.turret_size, self.contents, self.manager.faction)
+        self.stats = vehicle_stats.VehicleStats(self.chassis_size, self.turret_size, self.contents,
+                                                self.manager.faction)
 
-        # stat_1_categories = ["tons", "cost", "stability", "total_crew", "suspension_type", "suspension_rating",
-        #                      "engine_rating"]
-        # stat_1_string = ""
-        #
-        # for category in stat_1_categories:
-        #     entry = self.vehicle_stats[category]
-        #     try:
-        #         entry = round(entry, 1)
-        #     except:
-        #         entry = entry
-        #
-        #     if category == "suspension_type":
-        #         stat_1_string = "{}{:<18}\n{:>21}\n".format(stat_1_string, category + ":", str(entry))
-        #     else:
-        #         stat_1_string = "{}{:<18}{:>3}\n".format(stat_1_string, category + ":", str(entry))
-        #
-        # stat_2_categories = ["on_road_handling", "off_road_handling", "on_road", "off_road", "fuel", "stores",
-        #                      "vision_distance"]
-        # stat_2_string = ""
-        #
-        # for category in stat_2_categories:
-        #     entry = self.vehicle_stats[category]
-        #     try:
-        #         entry = round(entry, 1)
-        #     except:
-        #         entry = entry
-        #
-        #     stat_2_string = "{}{:<18}{:>3}\n".format(stat_2_string, category + ":", entry)
-        #
-        # ### armor display
-        #
-        # if self.turret_size:
-        #     locations = ["FRONT", "FLANKS", "TURRET"]
-        # else:
-        #     locations = ["FRONT", "FLANKS"]
-        #
-        # armor_string = "{:>21}".format("CP_-_HP_-_AP:")
-        # crit_string = ""
-        #
-        # for location in locations:
-        #     current_section = self.vehicle_stats["sections"][location]
-        #
-        #     if self.vehicle_stats["armored"]:
-        #         armor_rating = str(int(current_section["rating"])).zfill(2)
-        #     else:
-        #         armor_rating = "-"
-        #
-        #     max_warning = ""
-        #     if current_section["rating"] == current_section["max"]:
-        #         max_warning = "*"
-        #
-        #     components = [str(int(current_section["manpower"])).zfill(2),
-        #                   str(int(current_section["durability"])).zfill(2),
-        #                   armor_rating, max_warning]
-        #
-        #     hp_string = "{:<8}{} - {} - {}{}".format(location + ":", *components)
-        #     armor_string = "{}\n{}".format(armor_string, hp_string)
-        #
-        #     added_crits = []
-        #     for crit_entry in self.vehicle_stats["sections"][location]["crits"]:
-        #         if crit_entry[:1] not in added_crits and crit_entry != "CHASSIS":
-        #             added_crits.append(crit_entry[:1])
-        #
-        #     crits = "/".join(added_crits)
-        #     crit_string = "{}\n{}{}".format(crit_string, location + "_CRITS:_", crits)
+        stat_categories = ["drive_type",
+                           "suspension_type",
+                           "suspension_rating",
+                           "engine_handling",
+                           "engine_rating",
+                           "stability",
+                           "vision_distance",
+                           "durability",
+                           "weight",
+                           "crew",
+                           "range",
+                           "stores",
+                           "ammo",
+                           "reliability",
+                           "cost"]
 
-        label = "" #bgeutils.add_spaces("".join([stat_1_string, stat_2_string, armor_string, crit_string]))
+        stat_contents = [[key_name, self.stats.__dict__[key_name]] for key_name in stat_categories]
+        stats = []
+
+        for i in range(len(stat_contents)):
+            category = stat_contents[i]
+            label = "{}:".format(bgeutils.add_spaces(category[0]))
+            content = str(category[1])
+
+            content_string = "{:<20}{:>10}".format(label, content)
+            stats.append(content_string)
+
+        if self.turret_size > 0:
+            locations = ["FRONT", "FLANKS", "TURRET"]
+            crits = dict(FRONT=[], FLANKS=[], TURRET=[])
+        else:
+            locations = ["FRONT", "FLANKS", ""]
+            crits = dict(FRONT=[], FLANKS=[])
+
+        labels = "{:<10}{:^10}{:>10}".format("FRONT", "FLANKS", "TURRET")
+        stats.append(labels)
+        stats.append("ARMOR:")
+        armor = "{:<10}{:^10}{:>10}".format(*[self.stats.armor.get(key, "-") for key in locations])
+        stats.append(armor)
+        stats.append("MANPOWER:")
+        manpower = "{:<10}{:^10}{:>10}".format(*[self.stats.manpower.get(key, "-") for key in locations])
+        stats.append(manpower)
+        stats.append("CRITS:")
+
+        for crit_key in crits:
+            crit_list = self.stats.crits[crit_key]
+            for crit in crit_list:
+                short_crit = crit[:2]
+                if short_crit not in crits[crit_key] and short_crit != "CH":
+                    crits[crit_key].append(short_crit)
+
+        crits_string = "{:<10}{:^10}{:>10}".format(*["({})".format(",".join(crits.get(key, "-"))) for key in locations])
+        stats.append(crits_string)
+
+        label = "\n".join(stats)
         help_lines = ["Vehicle_statistics:", "Suspension_rating_should_exceed_tonnage.",
                       "Each_engine_or_armor_section_above_1_adds", "only_50_percent_to_rating.",
                       "CP=_Crew_points,_affects_reload_speed",

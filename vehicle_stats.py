@@ -103,6 +103,8 @@ class VehicleStats(object):
 
         self.drive_type = "WHEELED"
         self.suspension_type = "UNSPRUNG"
+        self.suspension_rating = 0
+        self.engine_handling = 0
         self.unsupported_weight = 0
         self.engine_rating = 0
         self.stability = 0
@@ -156,16 +158,10 @@ class VehicleStats(object):
 
     def build_vehicle(self, parts):
 
-        parts_dict = vehicle_parts.get_vehicle_parts()
         chassis_armor_scale = vehicle_parts.chassis_dict[self.chassis_size]["armor_scale"]
         turret_armor_scale = vehicle_parts.turret_dict[self.turret_size]["armor_scale"]
 
-        engine_handling = 0
-        suspension = 0
-
         sorted_parts = sorted(parts, key=lambda my_key: parts[my_key].get("rating", 0))
-
-        sections = ["FRONT", "FLANKS", "TURRET"]
 
         for part_key in sorted_parts:
 
@@ -181,7 +177,7 @@ class VehicleStats(object):
                 self.crew += 1
                 self.manpower[location] += rating
 
-            if part == "armor":
+            if part_type == "armor":
                 if location == "TURRET":
                     armor_scale = turret_armor_scale
                 else:
@@ -223,13 +219,13 @@ class VehicleStats(object):
             durability = part.get("durability", 0)
             level = part.get("level", 0)
 
-            self.cost += ((5 + level) * 100) * bulk
+            self.cost += ((5 + level) * 10) * bulk
             self.durability += durability
 
             if part_type == "design":
                 drive_types = ["WHEELED", "HALFTRACK", "TRACKED"]
                 if flag in drive_types:
-                    suspension += rating
+                    self.suspension_rating += rating
                     self.drive_type = flag
 
             if part_type == "engine":
@@ -237,13 +233,13 @@ class VehicleStats(object):
                 if self.engine_rating == 0:
                     self.fuel += 0.5
                     self.engine_rating += rating
-                    engine_handling += (rating * 0.5)
+                    self.engine_handling += (rating * 0.5)
                 else:
                     self.engine_rating += rating * 0.5
 
             if part_type == "suspension":
                 self.suspension_type = flag
-                suspension += rating
+                self.suspension_rating += rating
 
             if part_type == "weapon":
                 self.ammo += 0.5
@@ -259,6 +255,7 @@ class VehicleStats(object):
                     self.fuel += 1.0
 
         for section_key in self.armor:
+            self.armor[section_key] = int(round(self.armor[section_key], 0))
             section_armor = self.armor[section_key]
             if section_armor > 0 or "ARMORED_CHASSIS" in self.flags:
                 self.armored = True
@@ -266,14 +263,14 @@ class VehicleStats(object):
         if "GUN_CARRIAGE" in self.flags:
             self.get_gun_movement()
         else:
-            self.get_vehicle_movement(suspension, engine_handling)
+            self.get_vehicle_movement()
 
         self.get_vision()
 
     def get_gun_movement(self):
         pass
 
-    def get_vehicle_movement(self, suspension, engine_handling):
+    def get_vehicle_movement(self):
 
         suspension_dict = vehicle_parts.suspension_dict
         drive_dict = vehicle_parts.drive_dict
@@ -284,9 +281,9 @@ class VehicleStats(object):
 
         stability = suspension_mods["stability"] + drive_mods["stability"]
         on_road_handling = suspension_mods["handling"][0] + drive_mods["handling"][
-            0] + engine_handling
+            0] + self.engine_handling
         off_road_handling = suspension_mods["handling"][1] + drive_mods["handling"][
-            1] + engine_handling
+            1] + self.engine_handling
 
         tonnage_mod = int(self.weight * 0.1)
 
@@ -296,11 +293,11 @@ class VehicleStats(object):
         on_road_speed = min(99, (power_to_weight * suspension_mods["on_road"]) * drive_mods["on_road"])
         off_road_speed = min(50, (power_to_weight * suspension_mods["off_road"]) * drive_mods["off_road"])
 
-        if suspension < self.weight:
-            if suspension <= 0:
+        if self.suspension_rating < self.weight:
+            if self.suspension_rating <= 0:
                 weight_scale = 0.0
             else:
-                weight_scale = suspension / self.weight
+                weight_scale = self.suspension_rating / self.weight
 
             on_road_speed = int(on_road_speed * weight_scale)
             off_road_speed = int(off_road_speed * weight_scale)

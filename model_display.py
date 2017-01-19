@@ -5,12 +5,12 @@ import vehicle_parts
 
 
 class VehicleModel(object):
-    def __init__(self, adder, stats, owner=None, scale=1.0, cammo=0, faction_icon=None):
+    def __init__(self, adder, owner, scale=1.0, cammo=0, faction_icon=None):
 
         self.adder = adder
         self.scene = self.adder.scene
-        self.stats = stats
         self.owner = owner
+        self.stats = self.owner.stats
         self.scale = scale
         self.parts_dict = vehicle_parts.get_vehicle_parts()
 

@@ -44,7 +44,7 @@ class Audio(object):
                     sound_effect = SoundEffect(self.manager, handle, game_object)
                     self.sound_effects.append(sound_effect)
 
-                handle.volume = bge.logic.globalDict.get('volume', 1.0) * volume_scale
+                handle.volume = bge.logic.globalDict.get('volume', 0.2) * volume_scale
                 if attenuation:
                     handle.attenuation = attenuation
                 return handle
